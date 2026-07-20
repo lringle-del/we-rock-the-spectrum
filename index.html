@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>We Rock the Spectrum — Attendee Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Caslon+Text:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--vanilla:#FBF6EE;--biscuit:#EFE2CC;--parchment:#F4EADA;--sungold:#F2A63B;--sunset:#E5772E;--clay:#B9491F;
+--sky:#8FC0DE;--lagoon:#2E7C8B;--midnight:#1B2A44;--ink:#2b2419;--muted:#7c7060;--line:#E4D6C0;--greenbg:#e3f0f0;--graybg:#efe6d6;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--vanilla);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 90px;}
+.kicker{letter-spacing:.22em;text-transform:uppercase;font-size:12px;color:var(--clay);font-weight:600;margin-bottom:6px;}
+.tm{font-family:'Libre Caslon Text',serif;font-style:italic;color:var(--sunset);text-transform:none;letter-spacing:0;}
+h1{font-family:'Libre Caslon Display',Georgia,serif;font-weight:400;font-size:clamp(30px,4.4vw,50px);line-height:1.03;margin:0 0 6px;color:var(--midnight);}
+.sub{color:var(--muted);margin-bottom:6px;}.sub b{color:var(--ink);}
+.status{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;margin:6px 0 12px;}
+.status .d{width:8px;height:8px;border-radius:50%;}
+.status.live{background:var(--greenbg);color:var(--lagoon);}.status.live .d{background:var(--lagoon);}
+.status.snap{background:var(--graybg);color:#8a7a5f;}.status.snap .d{background:#b9a377;}
+.status.loading{background:#eef4f7;color:#4a6b78;}.status.loading .d{background:#4a6b78;animation:pulse 1s infinite;}
+@keyframes pulse{50%{opacity:.3;}}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 22px;border-bottom:2px solid var(--line);}
+.tab{border:none;background:none;padding:12px 20px 14px;font:inherit;font-weight:700;font-size:16px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;display:flex;gap:9px;align-items:center;}
+.tab .dot{width:9px;height:9px;border-radius:50%;background:var(--biscuit);}
+.tab.on{color:var(--midnight);border-bottom-color:var(--sunset);}.tab.on .dot{background:var(--sunset);}
+.tab .mini{font-weight:600;font-size:12.5px;color:var(--muted);}
+.venue{font-family:'Libre Caslon Text',serif;font-size:17px;color:var(--lagoon);margin:-6px 0 16px;}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(146px,1fr));gap:13px;margin:6px 0 24px;}
+.tile{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;}
+.tile .n{font-family:'Libre Caslon Display',serif;font-size:34px;line-height:1;color:var(--midnight);}
+.tile .l{font-size:12px;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+.tile .s{font-size:12px;color:var(--clay);margin-top:3px;font-weight:600;}
+.tile.deep{background:var(--midnight);border:none;}.tile.deep .n{color:#fff;}.tile.deep .l{color:#b9c4d6;}
+.tile.accent{background:linear-gradient(150deg,var(--sungold),var(--sunset));border:none;}.tile.accent .n,.tile.accent .l{color:#fff;}.tile.accent .s{color:#fff2e2;}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px;}
+.search{flex:1;min-width:200px;padding:11px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font:inherit;color:var(--ink);}
+.search:focus{outline:none;border-color:var(--sunset);box-shadow:0 0 0 3px rgba(229,119,46,.15);}
+.seg{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+.seg button{border:none;background:none;padding:10px 15px;font:inherit;font-weight:600;font-size:13.5px;color:var(--muted);cursor:pointer;}
+.seg button.on{background:var(--midnight);color:#fff;}
+.dl{border:none;background:var(--lagoon);color:#fff;font:inherit;font-weight:700;font-size:13.5px;padding:11px 16px;border-radius:12px;cursor:pointer;}
+.dl.alt{background:var(--clay);}.dl:hover{filter:brightness(1.06);}
+.fam{background:#fff;border:1px solid var(--line);border-radius:16px;margin-bottom:13px;overflow:hidden;}
+.fhead{display:flex;flex-wrap:wrap;align-items:center;gap:11px;padding:15px 20px;cursor:pointer;}.fhead:hover{background:#fffaf1;}
+.fname{font-family:'Libre Caslon Text',serif;font-weight:700;font-size:19px;color:var(--midnight);}
+.badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;letter-spacing:.03em;text-transform:uppercase;}
+.b-conf{background:var(--greenbg);color:var(--lagoon);}.b-pend{background:var(--graybg);color:#8a7a5f;}
+.b-src{background:#eef4f7;color:#4a6b78;}.b-form{background:#fbeede;color:var(--clay);}
+.count{margin-left:auto;display:flex;align-items:center;gap:7px;font-weight:600;color:var(--clay);}
+.count .big{font-family:'Libre Caslon Display',serif;font-size:25px;color:var(--sunset);}
+.meta{width:100%;color:var(--muted);font-size:13px;margin-top:3px;display:flex;gap:16px;flex-wrap:wrap;}.meta a{color:var(--lagoon);text-decoration:none;}
+.chev{transition:transform .2s;color:var(--muted);font-size:12px;}.fam.open .chev{transform:rotate(90deg);}
+.kids{display:none;padding:2px 14px 15px;}.fam.open .kids{display:block;}
+.ktable{width:100%;border-collapse:collapse;font-size:13px;}
+.ktable th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700;padding:8px 9px;border-bottom:2px solid var(--line);white-space:nowrap;}
+.ktable td{padding:9px 9px;border-bottom:1px solid #f0e7d7;vertical-align:top;}.ktable tr:last-child td{border-bottom:none;}
+.kname{font-weight:700;color:var(--midnight);}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;}
+.p-yes{background:#e3f0e6;color:#2f7d4f;}.p-no{background:#f2ece0;color:#8a7a5f;}.p-mid{background:#fdeede;color:var(--clay);}
+.gain{color:#5a5041;max-width:320px;}.hc-yes{color:var(--sunset);font-weight:700;}.hc-no{color:#b3a892;}
+.empty{padding:13px 9px;color:var(--muted);font-style:italic;}
+.note{background:var(--parchment);border:1px dashed var(--biscuit);border-radius:14px;padding:15px 18px;margin-top:24px;font-size:13.5px;color:#5a5041;}.note b{color:var(--clay);}
+.foot{margin-top:26px;color:var(--muted);font-size:12px;text-align:center;}
+.hidden{display:none!important;}
+@media(max-width:640px){.count{margin-left:0;}}
+/* Dynamic "all questions" view (We Rock the Spectrum) */
+.slotchips{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 20px;}
+.slotchip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--lagoon);cursor:pointer;}
+.slotchip.on{background:var(--lagoon);color:#fff;border-color:var(--lagoon);}
+.slotchip .c{color:var(--clay);font-weight:700;margin-left:6px;}.slotchip.on .c{color:#fff2e2;}
+.section-h{font-family:'Libre Caslon Text',serif;font-weight:700;font-size:18px;color:var(--midnight);margin:26px 0 12px;display:flex;align-items:center;gap:10px;}
+.section-h .hint{font-family:'Inter',sans-serif;font-weight:500;font-size:12.5px;color:var(--muted);}
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-bottom:6px;}
+.qcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;}
+.qcard .qq{font-weight:700;color:var(--midnight);font-size:14px;margin-bottom:12px;line-height:1.35;}
+.qcard .qn{font-weight:500;color:var(--muted);font-size:12px;}
+.brow{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px;}
+.blabel{flex:0 0 42%;color:#5a5041;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btrack{flex:1;height:9px;background:var(--parchment);border-radius:999px;overflow:hidden;}
+.bfill{height:100%;background:linear-gradient(90deg,var(--sungold),var(--sunset));border-radius:999px;}
+.bnum{flex:0 0 auto;font-weight:700;color:var(--clay);min-width:22px;text-align:right;}
+.qfree{font-size:12.5px;color:var(--muted);font-style:italic;}
+.qa{margin:2px 0 4px;}
+.qa .qrow{padding:9px 2px;border-bottom:1px solid #f0e7d7;}
+.qa .qrow:last-child{border-bottom:none;}
+.qa .q{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;margin-bottom:2px;}
+.qa .a{color:var(--ink);}
+.qa .who{font-weight:700;color:var(--lagoon);font-size:13px;margin:12px 0 4px;}
+.compose{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin:4px 0 22px;}
+.compose h3{font-family:'Libre Caslon Text',serif;margin:0 0 4px;color:var(--midnight);font-size:18px;}
+.compose .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;}
+.compose label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+.compose input[type=text],.compose textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:11px;background:var(--vanilla);font:inherit;color:var(--ink);margin-top:6px;}
+.compose textarea{min-height:130px;resize:vertical;}
+.compose input:focus,.compose textarea:focus{outline:none;border-color:var(--sunset);box-shadow:0 0 0 3px rgba(229,119,46,.15);}
+.compose .out{margin-top:12px;font-size:13px;padding:11px 13px;border-radius:11px;background:var(--parchment);color:#5a5041;white-space:pre-wrap;display:none;}
+.compose .out.show{display:block;}
+.btn{border:none;font:inherit;font-weight:700;font-size:13.5px;padding:11px 16px;border-radius:12px;cursor:pointer;}
+.btn.primary{background:var(--sunset);color:#fff;}.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--midnight);}
+.btn:hover{filter:brightness(1.05);}
+/* Approve / reject workflow */
+.b-appr{background:#e3f0e6;color:#2f7d4f;}.b-rej{background:#fbe4de;color:var(--clay);}
+.dwrap{display:inline-flex;gap:6px;}
+.dbtn{border:1px solid var(--line);background:#fff;font:inherit;font-weight:700;font-size:12px;padding:6px 11px;border-radius:9px;cursor:pointer;color:var(--muted);}
+.dbtn.ap:hover,.dbtn.ap.on{background:#2f7d4f;border-color:#2f7d4f;color:#fff;}
+.dbtn.rj:hover,.dbtn.rj.on{background:var(--clay);border-color:var(--clay);color:#fff;}
+.tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:999px;background:#fdeede;color:var(--clay);}
+.reviewWrap{background:#fff6ef;border:1px solid var(--biscuit);border-radius:16px;padding:6px 16px 14px;margin:6px 0 8px;}
+.reviewlist{display:flex;flex-direction:column;gap:8px;}
+.rrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;}
+.rrow .rmain{flex:1;min-width:200px;}
+.rrow .rname{font-family:'Libre Caslon Text',serif;font-weight:700;font-size:16px;color:var(--midnight);margin-right:8px;}
+.rrow .rmeta{color:var(--muted);font-size:12.5px;margin-top:3px;}
+.rkids{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.kidchip{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;}
+.kidchip.kidno{background:#fbe4de;color:var(--clay);}
+.kidchip.kidyes{background:#e3f0e6;color:#2f7d4f;}
+</style></head><body><div class="wrap">
+<div class="kicker">Above &amp; Beyond ABA Therapy &nbsp;·&nbsp; <span class="tm">care to soar&trade;</span></div>
+<h1>We Rock the Spectrum</h1>
+<div class="sub" id="sub"></div>
+<div class="status loading" id="status"><span class="d"></span><span id="statusText">Checking Eventbrite…</span></div>
+<div class="tabs" id="tabs"></div>
+<div class="venue" id="venue"></div>
+<div class="slotchips hidden" id="slotchips"></div>
+<div class="tiles" id="tiles"></div>
+<div id="reviewWrap" class="reviewWrap hidden"></div>
+<div id="resultsWrap" class="hidden"><div class="section-h">Results by question <span class="hint">across every registration in view</span></div><div class="results" id="results"></div></div>
+<div class="section-h" id="listHead">Registrations</div>
+<div class="controls">
+  <input class="search" id="q" placeholder="Search family, child, email, phone…">
+  <div class="seg" id="seg"></div>
+  <button class="dl" id="composeBtn">✉ Compose email</button>
+  <button class="dl" id="dlEvent">⬇ Emails (this event)</button>
+  <button class="dl alt" id="dlAll">⬇ All emails</button>
+  <button class="dl" id="emailPending">✉ Email not-confirmed</button>
+  <button class="dl" id="emailAll">✉ Email all</button>
+</div>
+<div class="compose hidden" id="compose">
+  <h3>Compose an email to this event</h3>
+  <div class="sub" id="composeSub"></div>
+  <div><label>Subject</label><input type="text" id="cSubject" placeholder="e.g. See you Saturday at We Rock the Spectrum!"></div>
+  <div style="margin-top:12px"><label>Message</label><textarea id="cBody" placeholder="Hi {{first}},&#10;&#10;We can't wait to see you…&#10;&#10;— Above &amp; Beyond ABA"></textarea>
+    <div style="font-size:12px;color:var(--muted);margin-top:5px">Tip: <b>{{first}}</b> is replaced with each recipient's first name. Line breaks are kept.</div></div>
+  <div class="row">
+    <div class="seg" id="cAudience"></div>
+    <button class="btn ghost" id="cPreview">Preview recipients</button>
+    <button class="btn primary" id="cSend">Send email</button>
+  </div>
+  <div class="out" id="cOut"></div>
+</div>
+<div id="list"></div>
+<div class="note" id="note"></div>
+<div class="foot">Above &amp; Beyond ABA Therapy · Live from Eventbrite. We Rock the Spectrum shows every registration question and answer, grouped by order and time slot. Test entries excluded.</div>
+</div>
+<script>
+const FALLBACK={"events":[{"key":"wrts","name":"We Rock the Spectrum","venue":"Free Event · We Rock the Spectrum Kids Gym","hasConfirm":false,"dynamic":true,"questions":[],"slots":[],"families":[]}]};
+let DB=FALLBACK, EV=DB.events, cur=0, filter='all', query='', slotFilter='all';
+// ---- Approve / reject decisions (persisted in this browser) ----
+const DECIDE_KEY='abt_wrts_decisions';
+let decisions={};try{decisions=JSON.parse(localStorage.getItem(DECIDE_KEY)||'{}')||{};}catch(_){decisions={};}
+function famKey(f){return (f.eventId||f.key||'')+':'+(f.order||f.email||'');}
+function decisionOf(f){return decisions[famKey(f)]||'pending';}
+function setDecision(f,val){const k=famKey(f);if(val==='pending')delete decisions[k];else decisions[k]=val;
+ try{localStorage.setItem(DECIDE_KEY,JSON.stringify(decisions));}catch(_){}
+ refresh();}
+// A registration "needs review" when ANY child on it answered "No" to the
+// autism-diagnosis question — even if a sibling on the same order has a
+// diagnosis. Family context is kept on the card and in the review row.
+function childNoDx(a){return (a.dx||'').trim().toLowerCase().startsWith('no');}
+function needsReview(f){return (f.attendees||[]).some(childNoDx);}
+// Rejection email template (opens in the sender's mail client, editable before sending).
+function rejectEmail(f){
+ const first=((f.purchaser||'there').trim().split(/\s+/)[0])||'there';
+ const subject='We Rock the Spectrum — Registration Update';
+ const body='Hi '+first+',\n\n'+
+  'Thank you so much for your interest in our We Rock the Spectrum event.\n\n'+
+  'We’re so sorry, but this event is designed specifically for the autism community — children with an autism diagnosis and their families. Because of that, we’re unable to confirm your registration for this event.\n\n'+
+  'We truly appreciate your understanding, and we’d love to welcome you to future events that are open to everyone.\n\n'+
+  'Warm regards,\nThe Above & Beyond ABA Team';
+ const href='mailto:'+encodeURIComponent(f.email||'')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+ window.location.href=href;}
+function decisionBadge(f){const d=decisionOf(f);
+ if(d==='approved')return '<span class="badge b-appr">✓ Approved</span>';
+ if(d==='rejected')return '<span class="badge b-rej">✕ Rejected</span>';
+ return '<span class="badge b-pend">Pending</span>';}
+function decisionControls(f){const d=decisionOf(f);
+ const b=(val,label,cls)=>'<button class="dbtn '+cls+(d===val?' on':'')+'" data-act="'+val+'" onclick="event.stopPropagation();decide(this)">'+label+'</button>';
+ return '<span class="dwrap">'+b('approved','✓ Approve','ap')+b('rejected','✕ Reject','rj')+'</span>';}
+function decide(el){const row=el.closest('[data-i]');if(!row)return;const f=EV[cur].families[+row.dataset.i];if(!f)return;
+ const act=el.dataset.act;const next=decisionOf(f)===act?'pending':act;
+ setDecision(f,next);
+ // Rejecting opens a ready-to-send "sorry" email to that family.
+ if(next==='rejected'){ if(f.email) rejectEmail(f); else alert('No email address on file for this registration.'); }}
+function mm(fams){let a=0,dx=0,ly=0,le=0,hc=0;for(const f of fams){a+=f.count;for(const k of f.attendees){
+ const d=(k.dx||'').toLowerCase();if(d.startsWith('yes'))dx++;const l=(k.looking||'').toLowerCase();if(l==='yes')ly++;else if(l.includes('exploring'))le++;
+ if((k.haircut||'').toLowerCase()==='yes')hc++;}}return{families:fams.length,attendees:a,dx,ly,le,hc,confirmed:fams.filter(f=>f.confirmed).length};}
+function esc(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function pill(v,mode){const t=(v||'').trim();if(!t||t==='Na'||t==='N/A'||t.toLowerCase()==='none')return '<span class="pill p-no">—</span>';
+ const l=t.toLowerCase();if(mode==='look'){if(l==='yes')return '<span class="pill p-yes">Yes</span>';if(l==='no')return '<span class="pill p-no">No</span>';return '<span class="pill p-mid">'+esc(t)+'</span>';}
+ if(l.startsWith('yes'))return '<span class="pill p-yes">'+esc(t)+'</span>';if(l.startsWith('no'))return '<span class="pill p-no">'+esc(t)+'</span>';return '<span class="pill p-mid">'+esc(t)+'</span>';}
+function tiles(e){const s=mm(e.families);const t=[];t.push(['deep',s.families,'Families','']);t.push(['deep',s.attendees,'Total guests','']);
+ if(e.hasConfirm)t.push(['accent',s.confirmed,'Confirmed',(s.families-s.confirmed)+' awaiting']);
+ t.push(['',s.dx,'Autism diagnosis','children (Yes)']);t.push(['',s.ly+s.le,'Interested in ABA',s.ly+' yes · '+s.le+' exploring']);t.push(['',s.hc,'Haircuts requested','']);
+ return t.map(x=>'<div class="tile '+x[0]+'"><div class="n">'+x[1]+'</div><div class="l">'+x[2]+'</div>'+(x[3]?'<div class="s">'+x[3]+'</div>':'')+'</div>').join('');}
+function segButtons(e){let opts;
+ if(e.dynamic)opts=[['all','All'],['review','Needs review'],['approved','Approved'],['rejected','Rejected']];
+ else if(e.hasConfirm)opts=[['all','All'],['conf','Confirmed'],['pend','Not confirmed']];
+ else opts=[['all','All'],['Eventbrite','Eventbrite'],['Microsoft Form','Form']];
+ return opts.map((o,i)=>'<button data-f="'+o[0]+'"'+(i===0?' class="on"':'')+'>'+o[1]+'</button>').join('');}
+function kids(f){const any=f.attendees.some(a=>a.child||a.dx||a.gain||a.aba);if(!any)return '<div class="empty">No custom-question answers on file for this registration.</div>';
+ const rows=f.attendees.map(a=>{const hc=(a.haircut||'').toLowerCase()==='yes'?'<span class="hc-yes">✂ Yes</span>':((a.haircut||'').toLowerCase()==='no'?'<span class="hc-no">No</span>':'<span class="hc-no">—</span>');
+  return '<tr><td class="kname">'+esc(a.child||'—')+'</td><td>'+esc(a.age||'—')+'</td><td>'+pill(a.dx)+'</td><td>'+pill(a.aba)+'</td><td>'+pill(a.looking,'look')+'</td><td class="gain">'+esc(a.gain||'—')+'</td><td>'+hc+'</td></tr>';}).join('');
+ return '<table class="ktable"><thead><tr><th>Child</th><th>Age</th><th>Autism dx?</th><th>On ABA?</th><th>Seeking ABA?</th><th>What they want from the day</th><th>Haircut</th></tr></thead><tbody>'+rows+'</tbody></table>';}
+function card(f,i,e){let badge,controls='',tag='';
+ if(e.dynamic){badge=decisionBadge(f);controls=decisionControls(f);if(needsReview(f))tag='<span class="tag">Needs review</span>';}
+ else if(e.hasConfirm)badge=f.confirmed?'<span class="badge b-conf">✓ Confirmed</span>':'<span class="badge b-pend">Not confirmed</span>';
+ else badge='<span class="badge '+(f.source==='Microsoft Form'?'b-form':'b-src')+'">'+esc(f.source||'Eventbrite')+'</span>';
+ const phone=f.phone?'<span>📞 '+esc(f.phone)+'</span>':'';const slot=f.timeslot?'<span>🕐 '+esc(f.timeslot)+'</span>':'';
+ const body=e.dynamic?kidsDynamic(f):kids(f);
+ return '<div class="fam" data-i="'+i+'"><div class="fhead" onclick="this.parentNode.classList.toggle(\'open\')"><span class="chev">▶</span><span class="fname">'+esc(f.purchaser||'(no name)')+'</span>'+badge+tag+controls+
+  '<span class="count"><span class="big">'+f.count+'</span> '+(f.count===1?'guest':'guests')+'</span><div class="meta"><span>✉ <a href="mailto:'+esc(f.email)+'">'+esc(f.email)+'</a></span>'+phone+slot+'<span>'+esc(f.order||'')+' · '+esc(f.date||'')+'</span></div></div><div class="kids">'+body+'</div></div>';}
+// Per-registration full Q&A — every question and answer, verbatim, one block
+// per guest on the order.
+function kidsDynamic(f){const guests=f.attendees||[];const any=guests.some(g=>(g.qa||[]).length);
+ if(!any)return '<div class="empty">No question answers on file for this registration.</div>';
+ const blocks=guests.map((g,gi)=>{const qa=(g.qa||[]);if(!qa.length)return '';
+  const who=g.child?esc(g.child):(guests.length>1?'Guest '+(gi+1):'Answers');
+  const rows=qa.map(x=>'<div class="qrow"><div class="q">'+esc(x.q)+'</div><div class="a">'+esc(x.a||'—')+'</div></div>').join('');
+  return '<div class="who">'+who+'</div>'+rows;}).join('');
+ return '<div class="qa">'+blocks+'</div>';}
+// Slot-filter chips for the multi-time event.
+function slotChips(e){const el=document.getElementById('slotchips');const slots=e.slots||[];
+ if(!e.dynamic||slots.length<2){el.className='slotchips hidden';el.innerHTML='';return;}
+ const counts={};for(const f of e.families){const s=f.timeslot||'—';counts[s]=(counts[s]||0)+1;}
+ const total=e.families.length;
+ const chip=(v,label,n)=>'<button class="slotchip'+(slotFilter===v?' on':'')+'" data-s="'+esc(v)+'">'+esc(label)+'<span class="c">'+n+'</span></button>';
+ el.className='slotchips';
+ el.innerHTML=chip('all','All times',total)+slots.map(s=>chip(s,s,counts[s]||0)).join('');}
+// Aggregate results: one card per question. Categorical answers get bars;
+// long free-text answers are summarized as a response count.
+function resultsSection(e,fams){const wrap=document.getElementById('resultsWrap');const box=document.getElementById('results');
+ if(!e.dynamic){wrap.className='hidden';box.innerHTML='';return;}
+ const questions=e.questions||[];const cards=[];
+ for(const q of questions){const answers=[];
+  for(const f of fams)for(const g of (f.attendees||[])){const hit=(g.qa||[]).find(x=>x.q===q);if(hit&&hit.a)answers.push(hit.a);}
+  if(!answers.length)continue;
+  const counts=new Map();for(const a of answers){counts.set(a,(counts.get(a)||0)+1);}
+  const distinct=[...counts.entries()].sort((a,b)=>b[1]-a[1]);
+  const avgLen=answers.reduce((s,a)=>s+a.length,0)/answers.length;
+  const categorical=distinct.length<=10&&avgLen<45;
+  let inner;
+  if(categorical){const max=distinct[0][1];
+   inner=distinct.map(([lab,n])=>'<div class="brow"><div class="blabel" title="'+esc(lab)+'">'+esc(lab)+'</div><div class="btrack"><div class="bfill" style="width:'+Math.round(n/max*100)+'%"></div></div><div class="bnum">'+n+'</div></div>').join('');
+  }else{inner='<div class="qfree">'+answers.length+' free-text response'+(answers.length===1?'':'s')+' — open each registration below to read them.</div>';}
+  cards.push('<div class="qcard"><div class="qq">'+esc(q)+' <span class="qn">· '+answers.length+' answered</span></div>'+inner+'</div>');}
+ wrap.className=cards.length?'':'hidden';box.innerHTML=cards.join('')||'';}
+// Tiles for the dynamic event: registrations, guests, approve/reject counts, + a tile per time slot.
+function dynTiles(e){const s=mm(e.families);const t=[];
+ let appr=0,rej=0,review=0;for(const f of e.families){const d=decisionOf(f);if(d==='approved')appr++;else if(d==='rejected')rej++;if(needsReview(f)&&d==='pending')review++;}
+ t.push(['deep',s.families,'Registrations','']);t.push(['deep',s.attendees,'Total guests','']);
+ t.push(['accent',review,'Needs review','a child answered No']);
+ t.push(['',appr,'Approved','']);t.push(['',rej,'Rejected','']);
+ const slots=e.slots||[];const counts={};for(const f of e.families){const k=f.timeslot||'—';counts[k]=(counts[k]||0)+1;}
+ for(const sl of slots)t.push(['',counts[sl]||0,sl,'registrations']);
+ return t.map(x=>'<div class="tile '+x[0]+'"><div class="n">'+x[1]+'</div><div class="l">'+x[2]+'</div>'+(x[3]?'<div class="s">'+x[3]+'</div>':'')+'</div>').join('');}
+// Compact "needs review" queue — any child who answered No to autism diagnosis,
+// with the whole family kept on the row (No children highlighted).
+function reviewRow(f,i){
+ const kids=(f.attendees||[]).map(a=>{const cls=childNoDx(a)?'kidno':'kidyes';
+  return '<span class="kidchip '+cls+'">'+esc(a.child||'Guest')+' · '+esc(a.dx||'—')+'</span>';}).join('');
+ const fam=f.count>1?(f.count+' in family'):'1 guest';
+ return '<div class="rrow" data-i="'+i+'"><div class="rmain"><span class="rname">'+esc(f.purchaser||'(no name)')+'</span>'+decisionBadge(f)+
+  '<div class="rmeta">✉ '+esc(f.email||'—')+(f.timeslot?' · 🕐 '+esc(f.timeslot):'')+' · '+fam+'</div>'+
+  '<div class="rkids">'+kids+'</div></div>'+decisionControls(f)+'</div>';}
+function renderReview(e){const wrap=document.getElementById('reviewWrap');
+ if(!e.dynamic){wrap.className='reviewWrap hidden';wrap.innerHTML='';return;}
+ const items=e.families.map((f,i)=>({f,i})).filter(x=>needsReview(x.f));
+ const pend=items.filter(x=>decisionOf(x.f)==='pending');
+ const decided=items.filter(x=>decisionOf(x.f)!=='pending');
+ wrap.className='reviewWrap';
+ if(!items.length){wrap.innerHTML='<div class="section-h">Needs review — child answered No to autism diagnosis <span class="hint">nothing to review 🎉</span></div>';return;}
+ const rows=[...pend,...decided].map(x=>reviewRow(x.f,x.i)).join('');
+ wrap.innerHTML='<div class="section-h">Needs review — child answered No to autism diagnosis <span class="hint">'+pend.length+' awaiting a decision'+(decided.length?(' · '+decided.length+' decided'):'')+'</span></div><div class="reviewlist">'+rows+'</div>';}
+// Rebuild the current event's decision-dependent UI without resetting filters.
+function refresh(){const e=EV[cur];
+ document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
+ renderReview(e);
+ listEl.innerHTML=e.families.map((f,i)=>card(f,i,e)).join('');
+ apply();}
+const listEl=document.getElementById('list');
+function buildHeader(){const allFams=EV.reduce((a,e)=>a.concat(e.families),[]);const combined=mm(allFams);
+ const tabsEl=document.getElementById('tabs');
+ if(EV.length<=1){const e=EV[0]||{name:''};
+  document.getElementById('sub').innerHTML='<b>'+combined.families+' registrations</b> · <b>'+combined.attendees+' guests</b> — live from Eventbrite.';
+  tabsEl.className='tabs hidden';tabsEl.innerHTML='';return;}
+ tabsEl.className='tabs';
+ const names=EV.map(e=>e.name);const nameList=names.length>1?names.slice(0,-1).join(', ')+' &amp; '+names[names.length-1]:names[0]||'';
+ document.getElementById('sub').innerHTML=EV.length+' events on one view — <b>'+combined.families+' registrations</b>, <b>'+combined.attendees+' guests</b> across '+nameList+'. Switch events with the tabs below.';
+ tabsEl.innerHTML=EV.map((e,i)=>{const s=mm(e.families);return '<button class="tab'+(i===cur?' on':'')+'" data-i="'+i+'"><span class="dot"></span>'+esc(e.name)+' <span class="mini">'+s.families+' reg · '+s.attendees+' guests</span></button>';}).join('');}
+function renderEvent(){const e=EV[cur];document.getElementById('venue').textContent=e.venue;
+ document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
+ document.getElementById('seg').innerHTML=segButtons(e);document.getElementById('q').value=query='';filter='all';slotFilter='all';
+ slotChips(e);renderReview(e);resultsSection(e,e.families);
+ document.getElementById('listHead').textContent=e.dynamic?'Registrations — every question & answer':'Registrations';
+ // The "not-confirmed" email button only applies to confirm-flow events.
+ document.getElementById('emailPending').classList.toggle('hidden',!e.hasConfirm);
+ document.getElementById('compose').classList.add('hidden');
+ buildComposeAudience(e);document.getElementById('composeSub').textContent='Sends to every registrant of “'+e.name+'” (one email each, de-duplicated).';
+ listEl.innerHTML=e.families.map((f,i)=>card(f,i,e)).join('');apply();}
+function apply(){const e=EV[cur];const fams=e.families;const visible=[];
+ document.querySelectorAll('#list .fam').forEach(el=>{const f=fams[+el.dataset.i];let ok=true;
+ if(filter==='conf'&&!f.confirmed)ok=false;if(filter==='pend'&&f.confirmed)ok=false;
+ if(filter==='Eventbrite'&&f.source!=='Eventbrite')ok=false;if(filter==='Microsoft Form'&&f.source!=='Microsoft Form')ok=false;
+ if(filter==='approved'&&decisionOf(f)!=='approved')ok=false;
+ if(filter==='rejected'&&decisionOf(f)!=='rejected')ok=false;
+ if(filter==='review'&&!(needsReview(f)&&decisionOf(f)==='pending'))ok=false;
+ if(slotFilter!=='all'&&(f.timeslot||'—')!==slotFilter)ok=false;
+ if(ok&&query){const extra=e.dynamic?f.attendees.map(a=>(a.qa||[]).map(x=>x.a).join(' ')).join(' '):f.attendees.map(a=>a.child+' '+a.gain).join(' ');
+  const hay=(f.purchaser+' '+f.email+' '+f.phone+' '+extra).toLowerCase();ok=hay.includes(query);}
+ el.classList.toggle('hidden',!ok);if(ok)visible.push(f);});
+ // Keep the results-by-question section in sync with the current filters.
+ if(e.dynamic)resultsSection(e,visible);}
+function draw(){buildHeader();renderEvent();}
+document.getElementById('tabs').addEventListener('click',ev=>{const b=ev.target.closest('.tab');if(!b)return;cur=+b.dataset.i;
+ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');renderEvent();});
+document.getElementById('seg').addEventListener('click',ev=>{if(ev.target.tagName!=='BUTTON')return;[...ev.currentTarget.children].forEach(x=>x.classList.remove('on'));ev.target.classList.add('on');filter=ev.target.dataset.f;apply();});
+document.getElementById('q').addEventListener('input',ev=>{query=ev.target.value.toLowerCase();apply();});
+document.getElementById('slotchips').addEventListener('click',ev=>{const b=ev.target.closest('.slotchip');if(!b)return;
+ slotFilter=b.dataset.s;[...ev.currentTarget.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');apply();});
+// ---- Compose email panel ----
+function buildComposeAudience(e){const opts=e.hasConfirm?[['all','Everyone'],['pending','Not confirmed only']]:[['all','Everyone']];
+ document.getElementById('cAudience').innerHTML=opts.map((o,i)=>'<button data-a="'+o[0]+'"'+(i===0?' class="on"':'')+'>'+o[1]+'</button>').join('');}
+document.getElementById('cAudience').addEventListener('click',ev=>{if(ev.target.tagName!=='BUTTON')return;[...ev.currentTarget.children].forEach(x=>x.classList.remove('on'));ev.target.classList.add('on');});
+function composeAudience(){const on=document.querySelector('#cAudience .on');return on?on.dataset.a:'all';}
+document.getElementById('composeBtn').addEventListener('click',()=>{const p=document.getElementById('compose');p.classList.toggle('hidden');if(!p.classList.contains('hidden'))document.getElementById('cSubject').focus();});
+function showOut(msg){const o=document.getElementById('cOut');o.textContent=msg;o.classList.add('show');}
+function sendKey(){let k=localStorage.getItem('abt_send_key')||'';if(!k){k=prompt('Enter the send passphrase (SEND_SECRET set in Vercel). Leave blank to just preview recipients.')||'';if(k)localStorage.setItem('abt_send_key',k);}return k;}
+async function composeCall(doSend){const e=EV[cur];const subject=document.getElementById('cSubject').value.trim();
+ const body=document.getElementById('cBody').value;
+ if(doSend&&(!subject||!body.trim())){showOut('Add a subject and a message first.');return;}
+ const html=body.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])).replace(/\n/g,'<br>');
+ const payload={event:e.key,audience:composeAudience(),subject,html};
+ if(doSend)payload.key=sendKey();
+ showOut(doSend?'Sending…':'Checking recipients…');
+ try{const r=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json();
+  if(d.mode==='sent'){showOut('✅ Sent '+d.sent+' email'+(d.sent===1?'':'s')+(d.failed?(' · '+d.failed+' failed: '+(d.errors||[]).join('; ')):'')+'.');}
+  else{const who=(d.recipients||[]).slice(0,8).join(', ');const more=(d.recipients||[]).length>8?' …+'+((d.recipients.length)-8)+' more':'';
+   showOut('Preview — would email '+(d.wouldSend||0)+' recipient'+((d.wouldSend===1)?'':'s')+'.'+(who?('\n'+who+more):'')+(d.reasons&&d.reasons.length?('\n\nNothing sent because: '+d.reasons.join('; ')+'.'):''));}
+ }catch(err){showOut('Could not reach the mail service: '+(err&&err.message||err));}}
+document.getElementById('cPreview').addEventListener('click',()=>composeCall(false));
+document.getElementById('cSend').addEventListener('click',()=>composeCall(true));
+function csv(rows){return rows.map(r=>r.map(c=>{c=(c==null?'':String(c));return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',')).join('\n');}
+function dl(name,rows){const blob=new Blob([csv(rows)],{type:'text/csv'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);}
+document.getElementById('dlEvent').addEventListener('click',()=>{const e=EV[cur];const seen=new Set();const out=[['Event','Family / Parent','Email','Phone','Guests','Confirmed']];
+ for(const f of e.families){const k=(f.email||'').toLowerCase();if(!f.email||seen.has(k))continue;seen.add(k);out.push([e.name,f.purchaser,f.email,f.phone,f.count,f.confirmed==null?'':(f.confirmed?'Yes':'No')]);}dl('emails_'+e.name.toLowerCase()+'.csv',out);});
+document.getElementById('dlAll').addEventListener('click',()=>{let rows=[['Event','Family / Parent','Email','Phone','Guests','Confirmed']];const seen=new Set();
+ for(const e of EV)for(const f of e.families){const k=(f.email||'').toLowerCase();if(!f.email||seen.has(k))continue;seen.add(k);rows.push([e.name,f.purchaser,f.email,f.phone,f.count,f.confirmed==null?'':(f.confirmed?'Yes':'No')]);}dl('emails_all_events.csv',rows);});
+function emailFamilies(onlyPending){const e=EV[cur];const seen=new Set();const emails=[];
+ for(const f of e.families){if(onlyPending&&f.confirmed)continue;const k=(f.email||'').toLowerCase();if(!f.email||seen.has(k))continue;seen.add(k);emails.push(f.email);}
+ if(!emails.length){alert(onlyPending?('Everyone in '+e.name+' is already confirmed — no reminders needed. 🎉'):('No email addresses found for '+e.name+'.'));return;}
+ const list=emails.join(';');
+ const subject=encodeURIComponent(e.name+' Event — Friendly Reminder');
+ const body=encodeURIComponent('Hi there,\n\nThis is a friendly reminder about our upcoming '+e.name+' event. We can’t wait to see you and your family there!\n\nWarm regards,\nAbove & Beyond ABA');
+ if(navigator.clipboard)navigator.clipboard.writeText(list).catch(()=>{});
+ const href='mailto:?bcc='+encodeURIComponent(list)+'&subject='+subject+'&body='+body;
+ alert(emails.length+' '+(onlyPending?'not-confirmed ':'')+e.name+' families added to BCC. (Also copied to your clipboard as backup — if the BCC line is empty, just paste into it.)');
+ window.location.href=href;}
+document.getElementById('emailPending').addEventListener('click',()=>emailFamilies(true));
+document.getElementById('emailAll').addEventListener('click',()=>emailFamilies(false));
+document.getElementById('note').innerHTML='<b>Good to know:</b> Any registration where <b>a child answered “No”</b> to the autism-diagnosis question is collected in the <b>Needs review</b> section up top — the whole family stays on the card so you can see siblings and their answers. Approve or reject each one. Clicking <b>Reject</b> opens a ready-to-send email letting that family know the event is for the autism community. Decisions are saved in this browser.';
+function setStatus(cls,txt){const s=document.getElementById('status');s.className='status '+cls;document.getElementById('statusText').textContent=txt;}
+draw();
+// Try live Eventbrite data; fall back silently to the embedded snapshot.
+fetch('/api/attendees?ts='+Date.now(),{cache:'no-store'}).then(r=>r.json()).then(d=>{
+ if(d&&d.events&&d.events.length&&d.events.some(e=>e.families&&e.families.length)){DB=d;EV=DB.events;cur=Math.min(cur,EV.length-1);draw();}
+ const m=d&&d._meta;
+ if(m&&m.live){const now=new Date();setStatus('live','● Live from Eventbrite · updated '+now.toLocaleString());}
+ else{setStatus('snap','Showing saved snapshot'+(m&&m.message?' — '+m.message:''));}
+}).catch(()=>{setStatus('snap','Showing saved snapshot (could not reach Eventbrite)');});
+</script></body></html>

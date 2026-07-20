@@ -1,0 +1,5 @@
+{
+  "crons": [
+    { "path": "/api/send-reminders?event=wrts&audience=all", "schedule": "0 13 * * *" }
+  ]
+}
