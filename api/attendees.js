@@ -87,10 +87,13 @@ async function discoverEvents(token){
   // Find the "Free Event at We Rock the Spectrum Kids Gym" event. It runs at
   // three times, which on Eventbrite may be three separate listings or three
   // ticket classes on one listing, so collect ALL matching ids.
-  const wrtsIds=[], candidates=[];
+  const wrtsIds=[], candidates=[]; let error=null, orgCount=0, account=null;
   try{
-    const me=await ebGet(`/users/me/organizations/`, token);
-    for(const org of me.organizations||[]){
+    // Who is this token? Surfaces the account so we can tell if it's the right one.
+    try{ const me=await ebGet(`/users/me/`, token); account={id:me.id, name:me.name, email:(me.emails&&me.emails[0]&&me.emails[0].email)||null}; }catch(_){}
+    const orgs=await ebGet(`/users/me/organizations/`, token);
+    orgCount=(orgs.organizations||[]).length;
+    for(const org of orgs.organizations||[]){
       let page=1, pages=1;
       do{
         // status:"all" so already-passed events are still returned.
@@ -105,8 +108,8 @@ async function discoverEvents(token){
         pages=d.pagination?d.pagination.page_count:1;
       } while(page++<pages && page<=20);
     }
-  }catch(e){}
-  return {wrtsIds, candidates};
+  }catch(e){ error=String(e&&e.message||e); }
+  return {wrtsIds, candidates, error, orgCount, account};
 }
 // Human-readable time-slot label for a single event listing (e.g. its start).
 function slotLabel(info){
@@ -126,7 +129,7 @@ async function eventInfo(id, token){
 // Build the full events payload (shared by the dashboard API and the reminder mailer).
 export async function getEvents(token){
   const envList=v=>v?String(v).split(",").map(s=>s.trim()).filter(Boolean):null;
-  const {wrtsIds, candidates}=await discoverEvents(token);
+  const {wrtsIds, candidates, error:discoverError, orgCount, account}=await discoverEvents(token);
   // Env override wins; otherwise use everything discovered by name plus the
   // known listing id(s), de-duplicated, so the event always shows up.
   const wrtsList=envList(process.env.EVENT_WRTS)||[...new Set([...wrtsIds, ...DEFAULT_WRTS_IDS])];
@@ -165,7 +168,13 @@ export async function getEvents(token){
     hasConfirm:false, dynamic:true, questions:wrtsQuestions,
     slots:wrtsSlots, families:wrtsFams});
   const out={events};
+  // A plain-English hint about why the list may be empty.
+  let hint=null;
+  if(discoverError) hint="Eventbrite rejected the token ("+discoverError+"). Check EVENTBRITE_TOKEN is the account's Private Token.";
+  else if(!candidates.length) hint="Token works but this Eventbrite account has 0 events — it's likely a different account than the one hosting We Rock the Spectrum.";
+  else if(!wrtsFams.length) hint="Found "+candidates.length+" events but none matched We Rock the Spectrum (or it has no attendees yet). See candidates for the exact name/id.";
   return {out, dbg:{
+    tokenAccount:account, orgCount, discoverError, hint,
     wrtsIds:wrtsList,
     wrtsAttendeesFetched:wrtsRawCount, wrtsFamilies:wrtsFams.length,
     wrtsQuestions:wrtsQuestions.length, wrtsSlots,
