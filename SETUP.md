@@ -92,34 +92,59 @@ of these are true, otherwise it just previews who it *would* email:
 Until `EMAIL_LIVE=1`, the Send button is completely safe — it will only ever
 show you the recipient list and the reason nothing was sent.
 
-## Automated reminder emails
+## Automated email campaign (two tracks)
 
-A daily Vercel Cron hits `/api/send-reminders`, which emails registrants via
-[Resend](https://resend.com). It is **safe by default** — it only sends when
-ALL of these are true, otherwise it runs in preview mode (sends nothing and
-just reports who it would email):
+A single daily Vercel Cron hits `/api/send-reminders`, which drives the whole
+campaign off the event date via [Resend](https://resend.com). There are two
+tracks, both from the same endpoint:
+
+1. **Weekly nurture** — one "ABA myth vs. reality" email per week (default
+   every **Wednesday**) while the event is still further out than the longest
+   countdown offset. The myth rotates each week and every email includes a live
+   "the event is in _X_ days" countdown.
+2. **Countdown ramp** — dedicated reminders at **5, 3, 2, and 0 days** before
+   the event, each with its own copy. A countdown day always wins over a weekly
+   day, so nobody ever gets two emails on the same date.
+
+It is **safe by default** — it only actually sends when ALL of these are true,
+otherwise it runs in preview mode (sends nothing and just reports who/what it
+would send):
 
 1. Caller is authorized (`CRON_SECRET`)
 2. `RESEND_API_KEY` is set
 3. `REMINDERS_LIVE` = `1`  ← the master "go live" switch
-4. Today is a reminder day for that event (2 days before + day-of by default)
+4. Today is a scheduled send day (a weekly day or a countdown day) with recipients
+
+Example calendar for an **Aug 21** event: weekly myths go out **Jul 29, Aug 5,
+Aug 12**, then the ramp fires **Aug 16 (5-day) → Aug 18 (3-day) → Aug 19
+(2-day) → Aug 21 (day-of)**.
 
 ### Env vars (Vercel → Settings → Environment Variables)
 
-| Variable               | Purpose                                                        |
-| ---------------------- | ------------------------------------------------------------- |
-| `CRON_SECRET`          | Any long random string; authorizes the cron / manual calls.   |
-| `RESEND_API_KEY`       | From resend.com. Enables sending.                             |
-| `REMINDERS_LIVE`       | Set to `1` only when you're ready for real emails to go out.   |
-| `EVENT_WRTS_DATE`      | We Rock the Spectrum event date, `YYYY-MM-DD`.                |
-| `REMINDER_OFFSETS`     | (optional) days-before to send, e.g. `3,1,0`. Default `2,0`.  |
-| `REMINDER_FROM`        | (optional) From address. Default `reminders@abtaba.com`.      |
+| Variable               | Purpose                                                          |
+| ---------------------- | --------------------------------------------------------------- |
+| `CRON_SECRET`          | Any long random string; authorizes the cron / manual calls.     |
+| `RESEND_API_KEY`       | From resend.com. Enables sending.                               |
+| `REMINDERS_LIVE`       | Set to `1` only when you're ready for real emails to go out.     |
+| `EVENT_WRTS_DATE`      | We Rock the Spectrum event date, `YYYY-MM-DD` (e.g. `2026-08-21`). |
+| `REMINDER_OFFSETS`     | (optional) countdown days-before to send. Default `5,3,2,0`.     |
+| `WEEKLY_DAY`           | (optional) weekday for the weekly myth email, `0`=Sun…`6`=Sat. Default `3` (Wednesday). |
+| `REMINDER_FROM`        | (optional) From address. Default `reminders@abtaba.com`.        |
+| `EVENT_VENUE`          | (optional) Venue name shown in emails. Default `We Rock the Spectrum Kids Gym`. |
 
 ### Preview it before going live
 
-Open (while logged in):
-`/api/send-reminders?event=wrts&audience=all&key=YOUR_CRON_SECRET&force=1`
-It lists exactly who would be emailed. When happy, set `REMINDERS_LIVE=1`.
+Open any of these while logged in (they bypass the date gate and send nothing
+until `REMINDERS_LIVE=1`):
+
+- `/api/send-reminders?key=YOUR_CRON_SECRET&force=1` — whatever today would send.
+- `/api/send-reminders?key=YOUR_CRON_SECRET&type=weekly&week=0` — force a weekly
+  email using myth index `0` (bump `week` to preview each myth).
+- `/api/send-reminders?key=YOUR_CRON_SECRET&type=countdown&days=5` — force the
+  5-day countdown email (try `days=3`, `2`, `0` too).
+
+Each preview shows the exact `subject`, the recipient list, and the reason
+nothing was sent. When happy, set `REMINDERS_LIVE=1`.
 
 ## Local / structure notes
 
