@@ -43,6 +43,28 @@ export default async function handler(req, res){
   const apiKey = process.env.RESEND_API_KEY;
   const liveEnabled = process.env.EMAIL_LIVE === "1";
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@abtaba.com>";
+  const testTo = String(body.testTo || (req.query && req.query.testTo) || "").trim();
+
+  // TEST MODE: send a single sample to one address (e.g. yourself) so the
+  // design can be reviewed BEFORE going live. Bypasses EMAIL_LIVE on purpose,
+  // but still requires the passphrase + an API key. Uses example personalization.
+  if(testTo){
+    if(!authed) return res.status(200).json({ mode:"test-blocked", reason:"passphrase missing/incorrect" });
+    if(!apiKey) return res.status(200).json({ mode:"test-blocked", reason:"RESEND_API_KEY not set" });
+    if(!subject || !html) return res.status(200).json({ mode:"test-blocked", reason:"subject or message is empty" });
+    const personalized = html
+      .replace(/\{\{\s*first\s*\}\}/gi, "Liba")
+      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "6:45 PM");
+    try{
+      const resp = await fetch("https://api.resend.com/emails", {
+        method:"POST",
+        headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
+        body: JSON.stringify({ from:FROM, to:[testTo], subject:`[SAMPLE] ${subject}`, html:personalized })
+      });
+      const detail = resp.ok ? null : await resp.text();
+      return res.status(200).json({ mode:"test-sent", to:testTo, ok:resp.ok, status:resp.status, detail });
+    }catch(err){ return res.status(200).json({ mode:"test-error", to:testTo, error:String(err && err.message || err) }); }
+  }
 
   let out;
   try { ({ out } = await getEvents(token)); }
