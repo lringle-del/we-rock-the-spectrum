@@ -31,10 +31,13 @@ function calStartUTC(slot){
 function calLink(slot){
   const text = encodeURIComponent("We Rock the Spectrum - Free Family Afternoon");
   const loc  = encodeURIComponent("We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128");
-  const det  = encodeURIComponent(`Your reserved time is ${slot||"in your confirmation"}. Food and door prizes!`);
+  const det  = encodeURIComponent(`Your reserved time is ${slot||"in your confirmation"}. Pizza and door prizes!`);
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${calStartUTC(slot)}/20260822T010000Z&location=${loc}&details=${det}`;
 }
 
+function calButton(slot){
+  return `<div style="margin:22px 0 4px"><a href="${calLink(slot)}" style="display:inline-block;background:#1f9d55;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:8px;font-size:15px">📅 Add to my calendar</a></div>`;
+}
 function confirmedEmailHtml(first, slot){
   return `<div style="font-family:Inter,Segoe UI,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1f2430;max-width:560px;margin:0 auto">`
     + `<p>Hi ${esc(first)},</p>`
@@ -44,7 +47,7 @@ function confirmedEmailHtml(first, slot){
     + `<div style="background:#f4f6fb;border-radius:10px;padding:14px 16px;margin:18px 0"><p style="margin:0 0 8px"><strong>Your details (save them!)</strong></p>`
     +   `&#128197; Friday, August 21 &middot; your time: <strong>${esc(slot||"see your registration")}</strong><br>`
     +   `&#128205; We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>`
-    +   `&#127869;&#65039; Food &middot; &#127873; Door prizes</div>`
+    +   `&#127829; Pizza &middot; &#127873; Door prizes</div>`
     + `<div style="text-align:center;margin:8px 0 24px"><a href="${calLink(slot)}" style="display:inline-block;background:#1f9d55;color:#fff;text-decoration:none;font-weight:700;padding:14px 30px;border-radius:8px;font-size:16px">&#128197; Add to my calendar</a></div>`
     + `<p>We can't wait to share it with you.</p><p>Warmly,<br>The Above &amp; Beyond ABA Team</p></div>`;
 }
@@ -88,6 +91,7 @@ export default async function handler(req, res){
     return res.status(200).send(page("You're confirmed!",
       `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
       + `<p style="font-size:17px">Thanks, Liba! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
+      + calButton("6:45 PM")
       + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email is on its way to your inbox. (This is the real end-to-end flow, sending only to you.)</p>`));
   }
 
@@ -96,6 +100,7 @@ export default async function handler(req, res){
     return res.status(200).send(page("You're confirmed!",
       `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
       + `<p style="font-size:17px">Thanks! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
+      + calButton("6:45 PM")
       + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">(This is a sample. Real links confirm the family and email them the details.)</p>`));
   }
 
@@ -126,8 +131,10 @@ export default async function handler(req, res){
   await addConfirmed(order);
   if(!already){ try{ await sendConfirmedEmail(fam); }catch(_){} }
 
+  const slot2 = fam ? (fam.slotTime || fam.timeslot || "") : "";
   return res.status(200).send(page("You're confirmed!",
     `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
     + `<p style="font-size:17px">Thanks, ${first}! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
+    + calButton(slot2)
     + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email with all the details is on its way.</p>`));
 }
