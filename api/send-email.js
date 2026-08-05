@@ -45,9 +45,9 @@ export default async function handler(req, res){
   if(!token) return res.status(400).json({ error:"No EVENTBRITE_TOKEN set" });
 
   const body = await readBody(req);
-  const which = String(body.event || "").toLowerCase();
-  const audience = String(body.audience || "all").toLowerCase(); // all | pending
   const template = String(body.template || (req.query && req.query.template) || "").toLowerCase();
+  const which = String(body.event || (req.query && req.query.event) || (template ? "wrts" : "")).toLowerCase();
+  const audience = String(body.audience || (req.query && req.query.audience) || "all").toLowerCase(); // all | pending
   let subject = String(body.subject || "").trim();
   let html = String(body.html || body.body || "").trim();
   if(template === "welcome"){ subject = WELCOME.subject; html = WELCOME.html; }
