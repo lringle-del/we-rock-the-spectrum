@@ -4,7 +4,7 @@
 
 import crypto from "crypto";
 import { getEvents } from "./attendees.js";
-import { addConfirmed, isConfirmed, ping, listConfirmed } from "./_store.js";
+import { addConfirmed, isConfirmed, ping, listConfirmed, removeConfirmed } from "./_store.js";
 
 // Same signing scheme the email sender uses to build the link.
 export function sigFor(order){
@@ -71,6 +71,7 @@ export default async function handler(req, res){
   // Self-test: /api/confirm?ping=1&key=CRON_SECRET  (also shows confirmed count)
   if(q.ping){
     if(String(q.key||"") !== String(process.env.CRON_SECRET||"")) return res.status(401).json({ error:"unauthorized" });
+    if(q.del) await removeConfirmed(String(q.del));  // cleanup for testing
     return res.status(200).json({ hasRedisUrl: !!process.env.REDIS_URL, redisOk: await ping(), confirmedCount: (await listConfirmed()).length });
   }
 

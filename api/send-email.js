@@ -14,7 +14,13 @@
 //   RESEND_API_KEY, EMAIL_LIVE, EMAIL_FROM (optional).
 
 import { getEvents } from "./attendees.js";
+import crypto from "crypto";
 
+// Signed per-family confirm link (must match api/confirm.js sigFor).
+function sigFor(order){
+  const secret = process.env.CRON_SECRET || "";
+  return crypto.createHmac("sha256", secret).update(String(order)).digest("hex").slice(0, 16);
+}
 function safeParse(s){ try{ return JSON.parse(s || "{}"); }catch(_){ return {}; } }
 function readBody(req){
   return new Promise(resolve=>{
@@ -54,9 +60,11 @@ export default async function handler(req, res){
     if(!authed) return res.status(200).json({ mode:"test-blocked", reason:"passphrase missing/incorrect" });
     if(!apiKey) return res.status(200).json({ mode:"test-blocked", reason:"RESEND_API_KEY not set" });
     if(!subject || !html) return res.status(200).json({ mode:"test-blocked", reason:"subject or message is empty" });
+    const previewConfirm = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}/api/confirm?o=SAMPLE&s=preview`;
     const personalized = html
       .replace(/\{\{\s*first\s*\}\}/gi, "Liba")
-      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "6:45 PM");
+      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "6:45 PM")
+      .replace(/\{\{\s*confirm_url\s*\}\}/gi, previewConfirm);
     // Allow a from-override for the sample so it can go out via Resend's test
     // sender (onboarding@resend.dev) before abtaba.com is verified.
     const testFrom = String(body.from || (req.query && req.query.from) || FROM).trim();
@@ -86,7 +94,7 @@ export default async function handler(req, res){
     const k = email.toLowerCase();
     if(!email || seen.has(k)) continue;
     seen.add(k);
-    recipients.push({ email, name: f.purchaser || "", slot: (f.slotTime || f.timeslot || "").trim() });
+    recipients.push({ email, name: f.purchaser || "", slot: (f.slotTime || f.timeslot || "").trim(), order: String(f.order || "") });
   }
 
   const willSend = authed && liveEnabled && !!apiKey && recipients.length > 0 && !!subject && !!html;
@@ -109,13 +117,16 @@ export default async function handler(req, res){
   }
 
   // LIVE: one personalized email per recipient via Resend.
+  const origin = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}`;
   const results = { sent:0, failed:0, errors:[] };
   for(const r of recipients){
     const first = r.name ? r.name.trim().split(/\s+/)[0] : "there";
     const slot = r.slot || "your reserved time";
+    const confirmUrl = `${origin}/api/confirm?o=${encodeURIComponent(r.order)}&s=${sigFor(r.order)}`;
     const personalized = html
       .replace(/\{\{\s*first\s*\}\}/gi, esc(first))
-      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, esc(slot));
+      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, esc(slot))
+      .replace(/\{\{\s*confirm_url\s*\}\}/gi, confirmUrl);
     try{
       const resp = await fetch("https://api.resend.com/emails", {
         method:"POST",
