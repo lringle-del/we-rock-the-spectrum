@@ -55,11 +55,14 @@ export default async function handler(req, res){
     const personalized = html
       .replace(/\{\{\s*first\s*\}\}/gi, "Liba")
       .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "6:45 PM");
+    // Allow a from-override for the sample so it can go out via Resend's test
+    // sender (onboarding@resend.dev) before abtaba.com is verified.
+    const testFrom = String(body.from || (req.query && req.query.from) || FROM).trim();
     try{
       const resp = await fetch("https://api.resend.com/emails", {
         method:"POST",
         headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
-        body: JSON.stringify({ from:FROM, to:[testTo], subject:`[SAMPLE] ${subject}`, html:personalized })
+        body: JSON.stringify({ from:testFrom, to:[testTo], subject:`[SAMPLE] ${subject}`, html:personalized })
       });
       const detail = resp.ok ? null : await resp.text();
       return res.status(200).json({ mode:"test-sent", to:testTo, ok:resp.ok, status:resp.status, detail });
