@@ -194,6 +194,8 @@ export async function getEvents(token){
     wrtsIds:wrtsList,
     wrtsAttendeesFetched:wrtsRawCount, wrtsFamilies:wrtsFams.length,
     wrtsQuestions:wrtsQuestions.length, wrtsSlots,
+    // Names only (never values) of any Redis/KV/Upstash env vars, to confirm the DB is linked.
+    redisEnv: Object.keys(process.env).filter(k=>/redis|kv|upstash/i.test(k)),
     candidates
   }};
 }
