@@ -230,7 +230,7 @@ export default async function handler(req, res){
     const key = email.toLowerCase();
     if(!email || seen.has(key)) continue;
     seen.add(key);
-    recipients.push({ email, name:f.purchaser||"", slot:(f.timeslot||"").trim() });
+    recipients.push({ email, name:f.purchaser||"", slot:(f.slotTime||f.timeslot||"").trim() });
   }
 
   // Build the email for today's plan.

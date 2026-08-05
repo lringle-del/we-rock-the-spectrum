@@ -121,6 +121,17 @@ function slotLabel(info){
   if(day && time) return `${day} · ${time}`;
   return (info&&info.name)||day||"";
 }
+// Just the clock time of a listing's start, e.g. "4:00 PM" (for emails).
+function slotTime(info){
+  const s=(info&&info.start)||"";
+  const m=s.match(/T(\d{2}):(\d{2})/);
+  if(!m) return "";
+  let h=+m[1]; const ap=h>=12?"PM":"AM"; h=h%12||12;
+  return `${h}:${m[2].padStart(2,"0")} ${ap}`;
+}
+// Ticket-class names that carry no real slot info, so we fall back to the
+// listing's start time instead.
+const GENERIC_TICKET=/^(general admission|free|rsvp|ticket)s?$/i;
 async function eventInfo(id, token){
   try{ const e=await ebGet(`/events/${id}/`, token);
     return {id, name:(e.name&&e.name.text)||"", start:(e.start&&e.start.local)||""}; }
@@ -144,10 +155,15 @@ export async function getEvents(token){
     try{
       const info=await eventInfo(id, token);
       const startSlot=slotLabel(info);
+      const startTime=slotTime(info);
       const raw=await allAttendees(id, token);
       wrtsRawCount+=raw.length;
-      const fams=buildFamilies(raw).map(f=>{ const t=f.ticket; delete f.emails;
-        return {...f, confirmed:null, count:f.attendees.length, timeslot:(t||startSlot), eventId:id}; });
+      const fams=buildFamilies(raw).map(f=>{ const t=(f.ticket||"").trim(); delete f.emails;
+        // Prefer a meaningful ticket-class name; otherwise use the listing's
+        // start time so each family shows their real slot (not "General Admission").
+        const useTicket = t && !GENERIC_TICKET.test(t);
+        return {...f, confirmed:null, count:f.attendees.length,
+          timeslot:(useTicket ? t : (startSlot||t)), slotTime:(useTicket ? t : startTime), eventId:id}; });
       wrtsFams=wrtsFams.concat(fams);
     }catch(_){ /* skip a listing we can't read (bad id / no access) */ }
   }

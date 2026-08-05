@@ -59,7 +59,7 @@ export default async function handler(req, res){
     const k = email.toLowerCase();
     if(!email || seen.has(k)) continue;
     seen.add(k);
-    recipients.push({ email, name: f.purchaser || "" });
+    recipients.push({ email, name: f.purchaser || "", slot: (f.slotTime || f.timeslot || "").trim() });
   }
 
   const willSend = authed && liveEnabled && !!apiKey && recipients.length > 0 && !!subject && !!html;
@@ -75,7 +75,9 @@ export default async function handler(req, res){
     return res.status(200).json({
       mode:"preview", event:which, audience,
       wouldSend: recipients.length, reasons,
-      recipients: recipients.map(r => r.email)
+      recipients: recipients.map(r => r.email),
+      // First few with their resolved time slot, so slot personalization can be verified.
+      sample: recipients.slice(0,6).map(r => ({ email:r.email, first:(r.name||"").trim().split(/\s+/)[0]||"there", slot:r.slot||"(none)" }))
     });
   }
 
@@ -83,7 +85,10 @@ export default async function handler(req, res){
   const results = { sent:0, failed:0, errors:[] };
   for(const r of recipients){
     const first = r.name ? r.name.trim().split(/\s+/)[0] : "there";
-    const personalized = html.replace(/\{\{\s*first\s*\}\}/gi, esc(first));
+    const slot = r.slot || "your reserved time";
+    const personalized = html
+      .replace(/\{\{\s*first\s*\}\}/gi, esc(first))
+      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, esc(slot));
     try{
       const resp = await fetch("https://api.resend.com/emails", {
         method:"POST",
