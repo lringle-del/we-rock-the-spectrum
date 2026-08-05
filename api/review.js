@@ -25,7 +25,7 @@ async function sendDecline(fam){
   if(process.env.EMAIL_LIVE !== "1") return false;   // master "go live" switch
   if(!apiKey || !fam || !fam.email) return false;
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-  const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
+  const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
   const first = (fam.purchaser || "").trim().split(/\s+/)[0] || "there";
   const resp = await fetch("https://api.resend.com/emails", {
     method:"POST",

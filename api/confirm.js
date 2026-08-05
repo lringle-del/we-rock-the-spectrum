@@ -54,7 +54,7 @@ export async function sendConfirmedEmail(fam){
   if(process.env.EMAIL_LIVE !== "1") return;   // master "go live" switch
   if(!apiKey || !fam || !fam.email) return;
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-  const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
+  const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
   const first = (fam.purchaser || "").trim().split(/\s+/)[0] || "there";
   const slot  = (fam.slotTime || fam.timeslot || "").trim();
   await fetch("https://api.resend.com/emails", {
@@ -79,6 +79,17 @@ export default async function handler(req, res){
   const order = String(q.o || "").trim();
   const s = String(q.s || "").trim();
   res.setHeader("Content-Type","text/html; charset=utf-8");
+
+  // Full-process self-test: runs the real confirmation email (to your own inbox
+  // only) and shows the real success page, so you can experience the whole loop.
+  if(order === "SELFTEST" && s === sigFor("SELFTEST")){
+    const testFam = { email: "lringle@abtaba.com", purchaser:"Liba Ringle", slotTime:"6:45 PM", timeslot:"6:45 PM", needsReview:false };
+    try{ await sendConfirmedEmail(testFam); }catch(_){}
+    return res.status(200).send(page("You're confirmed!",
+      `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
+      + `<p style="font-size:17px">Thanks, Liba! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
+      + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email is on its way to your inbox. (This is the real end-to-end flow, sending only to you.)</p>`));
+  }
 
   // Harmless demo link used in sample emails: shows the success page, writes nothing, sends nothing.
   if(order === "DEMO" && s === "DEMO"){

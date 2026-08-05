@@ -36,7 +36,7 @@ const OFFSETS = (process.env.REMINDER_OFFSETS || "5,3,2,0")
 const MAX_OFFSET = OFFSETS.length ? Math.max(...OFFSETS) : 0;
 const WEEKLY_DAY = (() => { const n = parseInt(process.env.WEEKLY_DAY ?? "3", 10); return isNaN(n) ? 3 : ((n % 7) + 7) % 7; })();
 const FROM = process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
+const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
 const VENUE = process.env.EVENT_VENUE || "We Rock the Spectrum Kids Gym";
 const EVENT_DATE = { wrts: process.env.EVENT_WRTS_DATE };
 const EVENT_NAME = { wrts: "Free Event at We Rock the Spectrum Kids Gym" };

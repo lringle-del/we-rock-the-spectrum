@@ -49,8 +49,8 @@ export default async function handler(req, res){
   const apiKey = process.env.RESEND_API_KEY;
   const liveEnabled = process.env.EMAIL_LIVE === "1";
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-  // updates.abtaba.com can't receive mail (no inbound MX), so replies go to a real inbox.
-  const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
+  // updates.abtaba.com can't receive mail (no inbound MX), so replies go to the team.
+  const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
   const testTo = String(body.testTo || (req.query && req.query.testTo) || "").trim();
 
   // TEST MODE: send a single sample to one address (e.g. yourself) so the
@@ -60,7 +60,7 @@ export default async function handler(req, res){
     if(!authed) return res.status(200).json({ mode:"test-blocked", reason:"passphrase missing/incorrect" });
     if(!apiKey) return res.status(200).json({ mode:"test-blocked", reason:"RESEND_API_KEY not set" });
     if(!subject || !html) return res.status(200).json({ mode:"test-blocked", reason:"subject or message is empty" });
-    const previewConfirm = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}/api/confirm?o=DEMO&s=DEMO`;
+    const previewConfirm = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}/api/confirm?o=SELFTEST&s=${sigFor("SELFTEST")}`;
     const personalized = html
       .replace(/\{\{\s*first\s*\}\}/gi, "Liba")
       .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "6:45 PM")
