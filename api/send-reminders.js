@@ -35,7 +35,8 @@ const OFFSETS = (process.env.REMINDER_OFFSETS || "5,3,2,0")
   .split(",").map(n => parseInt(n, 10)).filter(n => !isNaN(n));
 const MAX_OFFSET = OFFSETS.length ? Math.max(...OFFSETS) : 0;
 const WEEKLY_DAY = (() => { const n = parseInt(process.env.WEEKLY_DAY ?? "3", 10); return isNaN(n) ? 3 : ((n % 7) + 7) % 7; })();
-const FROM = process.env.REMINDER_FROM || "Above & Beyond ABA <reminders@abtaba.com>";
+const FROM = process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
+const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
 const VENUE = process.env.EVENT_VENUE || "We Rock the Spectrum Kids Gym";
 const EVENT_DATE = { wrts: process.env.EVENT_WRTS_DATE };
 const EVENT_NAME = { wrts: "Free Event at We Rock the Spectrum Kids Gym" };
@@ -271,7 +272,7 @@ export default async function handler(req, res){
       const resp = await fetch("https://api.resend.com/emails", {
         method:"POST",
         headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
-        body: JSON.stringify({ from:FROM, to:[r.email], subject: perSlot.subject, html })
+        body: JSON.stringify({ from:FROM, to:[r.email], reply_to:REPLY_TO, subject: perSlot.subject, html })
       });
       if(resp.ok) results.sent++;
       else { results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: HTTP ${resp.status}`); }
