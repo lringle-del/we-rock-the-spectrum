@@ -157,42 +157,42 @@ h1{font-family:'Libre Caslon Display',Georgia,serif;font-weight:400;font-size:cl
 <script>
 const FALLBACK={"events":[{"key":"wrts","name":"We Rock the Spectrum","venue":"Free Event · We Rock the Spectrum Kids Gym","hasConfirm":false,"dynamic":true,"questions":[],"slots":[],"families":[]}]};
 let DB=FALLBACK, EV=DB.events, cur=0, filter='all', query='', slotFilter='all';
-// ---- Approve / reject decisions (persisted in this browser) ----
-const DECIDE_KEY='abt_wrts_decisions';
-let decisions={};try{decisions=JSON.parse(localStorage.getItem(DECIDE_KEY)||'{}')||{};}catch(_){decisions={};}
-function famKey(f){return (f.eventId||f.key||'')+':'+(f.order||f.email||'');}
-function decisionOf(f){return decisions[famKey(f)]||'pending';}
-function setDecision(f,val){const k=famKey(f);if(val==='pending')delete decisions[k];else decisions[k]=val;
- try{localStorage.setItem(DECIDE_KEY,JSON.stringify(decisions));}catch(_){}
- refresh();}
-// A registration "needs review" when ANY child on it answered "No" to the
-// autism-diagnosis question — even if a sibling on the same order has a
-// diagnosis. Family context is kept on the card and in the review row.
-function childNoDx(a){return (a.dx||'').trim().toLowerCase().startsWith('no');}
-function needsReview(f){return (f.attendees||[]).some(childNoDx);}
-// Rejection email template (opens in the sender's mail client, editable before sending).
-function rejectEmail(f){
- const first=((f.purchaser||'there').trim().split(/\s+/)[0])||'there';
- const subject='We Rock the Spectrum — Registration Update';
- const body='Hi '+first+',\n\n'+
-  'Thank you so much for your interest in our We Rock the Spectrum event.\n\n'+
-  'We’re so sorry, but this event is designed specifically for the autism community — children with an autism diagnosis and their families. Because of that, we’re unable to confirm your registration for this event.\n\n'+
-  'We truly appreciate your understanding, and we’d love to welcome you to future events that are open to everyone.\n\n'+
-  'Warm regards,\nThe Above & Beyond ABA Team';
- const href='mailto:'+encodeURIComponent(f.email||'')+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
- window.location.href=href;}
+// ---- Review decisions (server-backed via /api/review) ----
+// A family is flagged for review only when EVERY child answered No to all three
+// of: autism diagnosis, currently receiving ABA, and looking for ABA services.
+// The flag is computed on the server (f.needsReview); their No-answer siblings
+// of a qualifying child are never flagged. Decisions live on the server too.
+function needsReview(f){return !!f.needsReview;}
+function decisionOf(f){const s=(f.reviewStatus||'').toLowerCase();
+ if(s==='approved')return 'approved';if(s==='declined')return 'declined';return 'pending';}
+function reviewKey(){let k=localStorage.getItem('abt_send_key')||'';
+ if(!k){k=prompt('Enter the passphrase (CRON_SECRET from Vercel) to approve or decline families.')||'';if(k)localStorage.setItem('abt_send_key',k);}return k;}
+async function decide(el){
+ const row=el.closest('[data-i]');if(!row)return;const f=EV[cur].families[+row.dataset.i];if(!f)return;
+ const act=el.dataset.act; // 'approve' | 'decline'
+ const who=f.purchaser||f.email||'this family';
+ const msg=act==='approve'
+  ? 'Approve '+who+' and send them the confirmation email?'
+  : 'DECLINE '+who+' and send the "this event is for the autism community" email?';
+ if(!confirm(msg))return;
+ const key=reviewKey();if(!key){alert('A passphrase is required.');return;}
+ const old=el.textContent;el.textContent='…';
+ try{
+  const r=await fetch('/api/review?key='+encodeURIComponent(key)+'&order='+encodeURIComponent(f.order||'')+'&action='+act,{method:'POST'});
+  const d=await r.json();
+  if(!r.ok||d.error){alert('Could not save: '+(d.error||('HTTP '+r.status)));el.textContent=old;return;}
+  f.reviewStatus=(act==='approve')?'approved':'declined';
+  alert((act==='approve'?'Approved.':'Declined.')+' '+(d.emailSent?'Email sent.':'(The email will go out once EMAIL_LIVE=1 is set.)'));
+ }catch(e){alert('Error: '+e.message);el.textContent=old;return;}
+ refresh();
+}
 function decisionBadge(f){const d=decisionOf(f);
  if(d==='approved')return '<span class="badge b-appr">✓ Approved</span>';
- if(d==='rejected')return '<span class="badge b-rej">✕ Rejected</span>';
- return '<span class="badge b-pend">Pending</span>';}
+ if(d==='declined')return '<span class="badge b-rej">✕ Declined</span>';
+ return '<span class="badge b-pend">Pending review</span>';}
 function decisionControls(f){const d=decisionOf(f);
- const b=(val,label,cls)=>'<button class="dbtn '+cls+(d===val?' on':'')+'" data-act="'+val+'" onclick="event.stopPropagation();decide(this)">'+label+'</button>';
- return '<span class="dwrap">'+b('approved','✓ Approve','ap')+b('rejected','✕ Reject','rj')+'</span>';}
-function decide(el){const row=el.closest('[data-i]');if(!row)return;const f=EV[cur].families[+row.dataset.i];if(!f)return;
- const act=el.dataset.act;const next=decisionOf(f)===act?'pending':act;
- setDecision(f,next);
- // Rejecting opens a ready-to-send "sorry" email to that family.
- if(next==='rejected'){ if(f.email) rejectEmail(f); else alert('No email address on file for this registration.'); }}
+ const b=(val,label,cls,on)=>'<button class="dbtn '+cls+(on?' on':'')+'" data-act="'+val+'" onclick="event.stopPropagation();decide(this)">'+label+'</button>';
+ return '<span class="dwrap">'+b('approve','✓ Approve','ap',d==='approved')+b('decline','✕ Decline','rj',d==='declined')+'</span>';}
 function mm(fams){let a=0,dx=0,ly=0,le=0,hc=0;for(const f of fams){a+=f.count;for(const k of f.attendees){
  const d=(k.dx||'').toLowerCase();if(d.startsWith('yes'))dx++;const l=(k.looking||'').toLowerCase();if(l==='yes')ly++;else if(l.includes('exploring'))le++;
  if((k.haircut||'').toLowerCase()==='yes')hc++;}}return{families:fams.length,attendees:a,dx,ly,le,hc,confirmed:fams.filter(f=>f.confirmed).length};}
@@ -205,7 +205,7 @@ function tiles(e){const s=mm(e.families);const t=[];t.push(['deep',s.families,'F
  t.push(['',s.dx,'Autism diagnosis','children (Yes)']);t.push(['',s.ly+s.le,'Interested in ABA',s.ly+' yes · '+s.le+' exploring']);t.push(['',s.hc,'Haircuts requested','']);
  return t.map(x=>'<div class="tile '+x[0]+'"><div class="n">'+x[1]+'</div><div class="l">'+x[2]+'</div>'+(x[3]?'<div class="s">'+x[3]+'</div>':'')+'</div>').join('');}
 function segButtons(e){let opts;
- if(e.dynamic)opts=[['all','All'],['review','Needs review'],['approved','Approved'],['rejected','Rejected']];
+ if(e.dynamic)opts=[['all','All'],['review','Needs review'],['approved','Approved'],['declined','Declined']];
  else if(e.hasConfirm)opts=[['all','All'],['conf','Confirmed'],['pend','Not confirmed']];
  else opts=[['all','All'],['Eventbrite','Eventbrite'],['Microsoft Form','Form']];
  return opts.map((o,i)=>'<button data-f="'+o[0]+'"'+(i===0?' class="on"':'')+'>'+o[1]+'</button>').join('');}
@@ -258,10 +258,10 @@ function resultsSection(e,fams){const wrap=document.getElementById('resultsWrap'
  wrap.className=cards.length?'':'hidden';box.innerHTML=cards.join('')||'';}
 // Tiles for the dynamic event: registrations, guests, approve/reject counts, + a tile per time slot.
 function dynTiles(e){const s=mm(e.families);const t=[];
- let appr=0,rej=0,review=0;for(const f of e.families){const d=decisionOf(f);if(d==='approved')appr++;else if(d==='rejected')rej++;if(needsReview(f)&&d==='pending')review++;}
+ let appr=0,rej=0,review=0;for(const f of e.families){const d=decisionOf(f);if(d==='approved')appr++;else if(d==='declined')rej++;if(needsReview(f)&&d==='pending')review++;}
  t.push(['deep',s.families,'Registrations','']);t.push(['deep',s.attendees,'Total guests','']);
- t.push(['accent',review,'Needs review','a child answered No']);
- t.push(['',appr,'Approved','']);t.push(['',rej,'Rejected','']);
+ t.push(['accent',review,'Needs review','not autism community']);
+ t.push(['',appr,'Approved','']);t.push(['',rej,'Declined','']);
  const slots=e.slots||[];const counts={};for(const f of e.families){const k=f.timeslot||'—';counts[k]=(counts[k]||0)+1;}
  for(const sl of slots)t.push(['',counts[sl]||0,sl,'registrations']);
  return t.map(x=>'<div class="tile '+x[0]+'"><div class="n">'+x[1]+'</div><div class="l">'+x[2]+'</div>'+(x[3]?'<div class="s">'+x[3]+'</div>':'')+'</div>').join('');}
@@ -280,9 +280,9 @@ function renderReview(e){const wrap=document.getElementById('reviewWrap');
  const pend=items.filter(x=>decisionOf(x.f)==='pending');
  const decided=items.filter(x=>decisionOf(x.f)!=='pending');
  wrap.className='reviewWrap';
- if(!items.length){wrap.innerHTML='<div class="section-h">Needs review — child answered No to autism diagnosis <span class="hint">nothing to review 🎉</span></div>';return;}
+ if(!items.length){wrap.innerHTML='<div class="section-h">Needs review: not part of the autism community <span class="hint">nothing to review 🎉</span></div>';return;}
  const rows=[...pend,...decided].map(x=>reviewRow(x.f,x.i)).join('');
- wrap.innerHTML='<div class="section-h">Needs review — child answered No to autism diagnosis <span class="hint">'+pend.length+' awaiting a decision'+(decided.length?(' · '+decided.length+' decided'):'')+'</span></div><div class="reviewlist">'+rows+'</div>';}
+ wrap.innerHTML='<div class="section-h">Needs review: not part of the autism community <span class="hint">'+pend.length+' awaiting a decision'+(decided.length?(' · '+decided.length+' decided'):'')+'</span></div><div class="reviewlist">'+rows+'</div>';}
 // Rebuild the current event's decision-dependent UI without resetting filters.
 function refresh(){const e=EV[cur];
  document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
@@ -314,7 +314,7 @@ function apply(){const e=EV[cur];const fams=e.families;const visible=[];
  if(filter==='conf'&&!f.confirmed)ok=false;if(filter==='pend'&&f.confirmed)ok=false;
  if(filter==='Eventbrite'&&f.source!=='Eventbrite')ok=false;if(filter==='Microsoft Form'&&f.source!=='Microsoft Form')ok=false;
  if(filter==='approved'&&decisionOf(f)!=='approved')ok=false;
- if(filter==='rejected'&&decisionOf(f)!=='rejected')ok=false;
+ if(filter==='declined'&&decisionOf(f)!=='declined')ok=false;
  if(filter==='review'&&!(needsReview(f)&&decisionOf(f)==='pending'))ok=false;
  if(slotFilter!=='all'&&(f.timeslot||'—')!==slotFilter)ok=false;
  if(ok&&query){const extra=e.dynamic?f.attendees.map(a=>(a.qa||[]).map(x=>x.a).join(' ')).join(' '):f.attendees.map(a=>a.child+' '+a.gain).join(' ');
