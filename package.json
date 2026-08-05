@@ -1,5 +1,8 @@
 {
   "private": true,
   "type": "module",
-  "name": "abt-event-dashboard"
+  "name": "abt-event-dashboard",
+  "dependencies": {
+    "redis": "^4.7.0"
+  }
 }

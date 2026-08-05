@@ -2,6 +2,8 @@
 // The private Eventbrite token lives ONLY in the Vercel Environment Variable
 // EVENTBRITE_TOKEN and is never sent to the browser.
 
+import { listConfirmed } from "./_store.js";
+
 const BASE = "https://www.eventbriteapi.com/v3";
 // Test / non-attendee registrations to exclude from every count.
 const TEST_EMAILS = new Set([
@@ -167,6 +169,13 @@ export async function getEvents(token){
       wrtsFams=wrtsFams.concat(fams);
     }catch(_){ /* skip a listing we can't read (bad id / no access) */ }
   }
+  // Mark families who have tapped "I confirm my spot" (best-effort; a Redis
+  // hiccup must never break the dashboard, so failures leave confirmed=null).
+  try{
+    const confirmedSet = new Set((await listConfirmed()).map(String));
+    for(const f of wrtsFams) f.confirmed = confirmedSet.has(String(f.order));
+  }catch(_){ /* leave confirmed as-is */ }
+
   // Distinct time slots actually present (handles both the multi-listing and
   // the single-listing-with-ticket-classes cases).
   const wrtsSlots=[]; const seenS=new Set();
