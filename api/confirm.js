@@ -54,7 +54,7 @@ export async function sendConfirmedEmail(fam){
   if(process.env.EMAIL_LIVE !== "1") return;   // master "go live" switch
   if(!apiKey || !fam || !fam.email) return;
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-  const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
+  const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
   const first = (fam.purchaser || "").trim().split(/\s+/)[0] || "there";
   const slot  = (fam.slotTime || fam.timeslot || "").trim();
   await fetch("https://api.resend.com/emails", {

@@ -49,8 +49,10 @@ export default async function handler(req, res){
   const apiKey = process.env.RESEND_API_KEY;
   const liveEnabled = process.env.EMAIL_LIVE === "1";
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-  // updates.abtaba.com can't receive mail (no inbound MX), so replies go to the team.
-  const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
+  // updates.abtaba.com can't receive mail (no inbound MX), so replies go to a real inbox.
+  const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
+  // Internal observers who receive one copy of each approved campaign send.
+  const TEAM_COPY = (process.env.TEAM_COPY || "jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
   const testTo = String(body.testTo || (req.query && req.query.testTo) || "").trim();
 
   // TEST MODE: send a single sample to one address (e.g. yourself) so the
@@ -139,5 +141,20 @@ export default async function handler(req, res){
       else { results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: HTTP ${resp.status}`); }
     }catch(err){ results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: ${String(err && err.message || err)}`); }
   }
-  return res.status(200).json({ mode:"sent", event:which, audience, ...results });
+
+  // Team copies: one copy of the send to internal observers (not per-family).
+  const copyHtml = html
+    .replace(/\{\{\s*first\s*\}\}/gi, "Team")
+    .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "(each family sees their own time)")
+    .replace(/\{\{\s*confirm_url\s*\}\}/gi, `${origin}/api/confirm?o=DEMO&s=DEMO`);
+  for(const t of TEAM_COPY){
+    try{
+      await fetch("https://api.resend.com/emails", {
+        method:"POST",
+        headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
+        body: JSON.stringify({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${subject}`, html:copyHtml })
+      });
+    }catch(_){}
+  }
+  return res.status(200).json({ mode:"sent", event:which, audience, teamCopies:TEAM_COPY.length, ...results });
 }

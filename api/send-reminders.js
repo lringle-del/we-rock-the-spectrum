@@ -36,7 +36,8 @@ const OFFSETS = (process.env.REMINDER_OFFSETS || "5,3,2,0")
 const MAX_OFFSET = OFFSETS.length ? Math.max(...OFFSETS) : 0;
 const WEEKLY_DAY = (() => { const n = parseInt(process.env.WEEKLY_DAY ?? "3", 10); return isNaN(n) ? 3 : ((n % 7) + 7) % 7; })();
 const FROM = process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
-const REPLY_TO = (process.env.EMAIL_REPLY_TO || "lringle@abtaba.com,jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
+const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
+const TEAM_COPY = (process.env.TEAM_COPY || "jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
 const VENUE = process.env.EVENT_VENUE || "We Rock the Spectrum Kids Gym";
 const EVENT_DATE = { wrts: process.env.EVENT_WRTS_DATE };
 const EVENT_NAME = { wrts: "Free Event at We Rock the Spectrum Kids Gym" };
@@ -280,5 +281,17 @@ export default async function handler(req, res){
       else { results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: HTTP ${resp.status}`); }
     }catch(err){ results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: ${String(err && err.message || err)}`); }
   }
-  return res.status(200).json({ mode:"sent", today:todayISO(), event:which, audience, track:plan.track, subject:built.subject, ...results });
+
+  // Team copies: one copy of the reminder to internal observers.
+  const copyHtml = built.html.replace(/\{\{\s*first\s*\}\}/gi, "Team");
+  for(const t of TEAM_COPY){
+    try{
+      await fetch("https://api.resend.com/emails", {
+        method:"POST",
+        headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
+        body: JSON.stringify({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${built.subject}`, html:copyHtml })
+      });
+    }catch(_){}
+  }
+  return res.status(200).json({ mode:"sent", today:todayISO(), event:which, audience, track:plan.track, subject:built.subject, teamCopies:TEAM_COPY.length, ...results });
 }
