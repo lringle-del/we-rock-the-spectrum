@@ -49,8 +49,9 @@ function confirmedEmailHtml(first, slot){
     + `<p>We can't wait to share it with you.</p><p>Warmly,<br>The Above &amp; Beyond ABA Team</p></div>`;
 }
 
-async function sendConfirmedEmail(fam){
+export async function sendConfirmedEmail(fam){
   const apiKey = process.env.RESEND_API_KEY;
+  if(process.env.EMAIL_LIVE !== "1") return;   // master "go live" switch
   if(!apiKey || !fam || !fam.email) return;
   const FROM = process.env.EMAIL_FROM || process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.abtaba.com>";
   const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
@@ -93,10 +94,7 @@ export default async function handler(req, res){
       + `<p style="color:#5b6270">Please use the button in your email, or just reply and we'll help you confirm.</p>`));
   }
 
-  const already = await isConfirmed(order);
-  await addConfirmed(order);
-
-  // Find the family to personalize the page and send the confirmation once.
+  // Find the family first so we can screen for the review gate.
   let fam = null;
   try{
     const { out } = await getEvents(process.env.EVENTBRITE_TOKEN);
@@ -104,9 +102,19 @@ export default async function handler(req, res){
     fam = ev && ev.families.find(f => String(f.order) === order);
   }catch(_){}
 
+  const first = fam && fam.purchaser ? esc(fam.purchaser.trim().split(/\s+/)[0]) : "there";
+
+  // Flagged (non-community) families are held for manual review: no auto-confirm, no email.
+  if(fam && fam.needsReview && fam.reviewStatus !== "approved"){
+    return res.status(200).send(page("Thank you!",
+      `<div style="font-size:46px">💛</div><h2 style="margin:10px 0 6px">Thank you, ${first}!</h2>`
+      + `<p style="font-size:17px">We've received your request and will confirm your spot by email very soon.</p>`));
+  }
+
+  const already = await isConfirmed(order);
+  await addConfirmed(order);
   if(!already){ try{ await sendConfirmedEmail(fam); }catch(_){} }
 
-  const first = fam && fam.purchaser ? esc(fam.purchaser.trim().split(/\s+/)[0]) : "there";
   return res.status(200).send(page("You're confirmed!",
     `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
     + `<p style="font-size:17px">Thanks, ${first}! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`

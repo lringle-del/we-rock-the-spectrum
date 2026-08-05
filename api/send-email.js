@@ -90,6 +90,8 @@ export default async function handler(req, res){
   const seen = new Set(); const recipients = [];
   for(const f of ev.families){
     if(audience === "pending" && f.confirmed) continue;
+    // Never auto-send to families flagged for review unless you've approved them.
+    if(f.needsReview && f.reviewStatus !== "approved") continue;
     const email = (f.email || "").trim();
     const k = email.toLowerCase();
     if(!email || seen.has(k)) continue;

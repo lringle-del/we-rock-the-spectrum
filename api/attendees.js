@@ -2,7 +2,19 @@
 // The private Eventbrite token lives ONLY in the Vercel Environment Variable
 // EVENTBRITE_TOKEN and is never sent to the browser.
 
-import { listConfirmed } from "./_store.js";
+import { listConfirmed, getReviewMap } from "./_store.js";
+
+// A family is flagged for manual review only when EVERY child answered "No" to
+// all three of: autism diagnosis, currently receiving ABA, looking for ABA. Any
+// other answer (Yes, "in the process", "exploring", "previously received") means
+// the family is part of the autism community, and their No-answer kids are just
+// siblings. Flagged families are held out of every automatic send.
+function isNo(v){ return (v||"").trim().toLowerCase() === "no"; }
+function familyNeedsReview(f){
+  const kids = f.attendees || [];
+  if(!kids.length) return false;
+  return kids.every(a => isNo(a.dx) && isNo(a.aba) && isNo(a.looking));
+}
 
 const BASE = "https://www.eventbriteapi.com/v3";
 // Test / non-attendee registrations to exclude from every count.
@@ -169,12 +181,18 @@ export async function getEvents(token){
       wrtsFams=wrtsFams.concat(fams);
     }catch(_){ /* skip a listing we can't read (bad id / no access) */ }
   }
-  // Mark families who have tapped "I confirm my spot" (best-effort; a Redis
-  // hiccup must never break the dashboard, so failures leave confirmed=null).
+  // Flag families for review (community screening) from their answers.
+  for(const f of wrtsFams) f.needsReview = familyNeedsReview(f);
+  // Mark confirmed families and review decisions (best-effort; a Redis hiccup
+  // must never break the dashboard, so failures leave the defaults).
   try{
     const confirmedSet = new Set((await listConfirmed()).map(String));
-    for(const f of wrtsFams) f.confirmed = confirmedSet.has(String(f.order));
-  }catch(_){ /* leave confirmed as-is */ }
+    const reviewMap = await getReviewMap();
+    for(const f of wrtsFams){
+      f.confirmed = confirmedSet.has(String(f.order));
+      f.reviewStatus = reviewMap[String(f.order)] || null;  // "approved" | "declined" | null
+    }
+  }catch(_){ /* leave defaults */ }
 
   // Distinct time slots actually present (handles both the multi-listing and
   // the single-listing-with-ticket-classes cases).

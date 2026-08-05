@@ -20,6 +20,17 @@ async function getClient(){
 const CONFIRMED = "wrts:confirmed";       // set of Eventbrite order ids
 const APPROVED  = "wrts:approved";        // set of send ids the approver has approved
 const PREVIEWED = "wrts:previewed";       // set of send ids whose approval preview was emailed
+const REVIEW    = "wrts:review";          // hash: order id -> "approved" | "declined"
+
+// --- review decisions for flagged (non-autism-community) families ---
+export async function setReview(order, status){
+  const c = await getClient(); if(!c) return null;
+  try{ return await c.hSet(REVIEW, String(order), String(status)); }catch(_){ return null; }
+}
+export async function getReviewMap(){
+  const c = await getClient(); if(!c) return {};
+  try{ return (await c.hGetAll(REVIEW)) || {}; }catch(_){ return {}; }
+}
 
 // --- diagnostics ---
 export async function ping(){
