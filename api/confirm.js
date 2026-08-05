@@ -79,6 +79,14 @@ export default async function handler(req, res){
   const s = String(q.s || "").trim();
   res.setHeader("Content-Type","text/html; charset=utf-8");
 
+  // Harmless demo link used in sample emails: shows the success page, writes nothing, sends nothing.
+  if(order === "DEMO" && s === "DEMO"){
+    return res.status(200).send(page("You're confirmed!",
+      `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
+      + `<p style="font-size:17px">Thanks! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
+      + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">(This is a sample. Real links confirm the family and email them the details.)</p>`));
+  }
+
   if(!order || s !== sigFor(order)){
     return res.status(400).send(page("Invalid link",
       `<div style="font-size:40px">🤔</div><h2 style="margin:10px 0">This link looks invalid</h2>`

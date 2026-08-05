@@ -60,7 +60,7 @@ export default async function handler(req, res){
     if(!authed) return res.status(200).json({ mode:"test-blocked", reason:"passphrase missing/incorrect" });
     if(!apiKey) return res.status(200).json({ mode:"test-blocked", reason:"RESEND_API_KEY not set" });
     if(!subject || !html) return res.status(200).json({ mode:"test-blocked", reason:"subject or message is empty" });
-    const previewConfirm = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}/api/confirm?o=SAMPLE&s=preview`;
+    const previewConfirm = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}/api/confirm?o=DEMO&s=DEMO`;
     const personalized = html
       .replace(/\{\{\s*first\s*\}\}/gi, "Liba")
       .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "6:45 PM")
