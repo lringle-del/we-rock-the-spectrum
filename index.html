@@ -126,6 +126,7 @@ h1{font-family:'Libre Caslon Display',Georgia,serif;font-weight:400;font-size:cl
 <div class="slotchips hidden" id="slotchips"></div>
 <div class="tiles" id="tiles"></div>
 <div id="reviewWrap" class="reviewWrap hidden"></div>
+<div id="occWrap" class="reviewWrap hidden"></div>
 <div id="scheduleWrap" class="reviewWrap hidden"></div>
 <div id="resultsWrap" class="hidden"><div class="section-h">Results by question <span class="hint">across every registration in view</span></div><div class="results" id="results"></div></div>
 <div class="section-h" id="listHead">Registrations</div>
@@ -183,7 +184,10 @@ async function decide(el){
  try{
   const r=await fetch('/api/review?key='+encodeURIComponent(key)+'&order='+encodeURIComponent(f.order||'')+'&action='+act,{method:'POST'});
   const d=await r.json();
-  if(!r.ok||d.error){alert('Could not save: '+(d.error||('HTTP '+r.status)));el.textContent=old;return;}
+  if(!r.ok||d.error){
+   if(r.status===401){localStorage.removeItem('abt_send_key');alert('That passphrase was not accepted, so I cleared it. Click the button again and enter the CRON_SECRET from Vercel.');}
+   else alert('Could not save: '+(d.error||('HTTP '+r.status)));
+   el.textContent=old;return;}
   f.reviewStatus=(act==='approve')?'approved':'declined';
   alert((act==='approve'?'Approved.':'Declined.')+' '+(d.emailSent?'Email sent.':'(The email will go out once EMAIL_LIVE=1 is set.)'));
  }catch(e){alert('Error: '+e.message);el.textContent=old;return;}
@@ -322,6 +326,20 @@ function renderSchedule(e){
  const conf=e.families.filter(f=>f.confirmed).length;
  wrap.innerHTML='<div class="section-h">Email schedule <span class="hint">'+conf+' of '+e.families.length+' confirmed (responded) so far</span></div><div class="reviewlist">'+rows+'</div>';
 }
+function renderOccupancy(e){
+ const wrap=document.getElementById('occWrap');if(!wrap)return;
+ if(!e||!e.dynamic){wrap.className='reviewWrap hidden';wrap.innerHTML='';return;}
+ wrap.className='reviewWrap';
+ const CAP=330;
+ const groups={};
+ for(const f of e.families){const k=(f.slotTime||f.timeslot||'—');if(!groups[k])groups[k]={fam:0,kids:0};groups[k].fam++;groups[k].kids+=(f.count||(f.attendees?f.attendees.length:0)||0);}
+ const ordr=['4:00 PM','5:30 PM','6:45 PM'];
+ const keys=Object.keys(groups).sort((a,b)=>{const ia=ordr.indexOf(a),ib=ordr.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+ const rows=keys.map(function(k){const g=groups[k];const ppl=g.kids+g.fam*2;const pct=Math.round(ppl/CAP*100);const w=Math.max(3,Math.min(100,pct));
+  return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span><b>'+esc(k)+'</b></span><span style="color:#5b6270">~'+ppl+' people · '+g.kids+' kids · '+g.fam+' families · '+pct+'% of '+CAP+'</span></div><div style="background:#eef0f6;border-radius:8px;height:22px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:'+(pct>90?'#d9534f':'#6b5bd6')+'"></div></div></div>';
+ }).join('');
+ wrap.innerHTML='<div class="section-h">Occupancy by time slot <span class="hint">venue capacity '+CAP+' · Fri Aug 21, 4-8 PM · est. incl. ~2 adults/family</span></div>'+rows;
+}
 function refresh(){const e=EV[cur];
  document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
  renderReview(e);renderSchedule(e);
@@ -340,7 +358,7 @@ function buildHeader(){const allFams=EV.reduce((a,e)=>a.concat(e.families),[]);c
 function renderEvent(){const e=EV[cur];document.getElementById('venue').textContent=e.venue;
  document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
  document.getElementById('seg').innerHTML=segButtons(e);document.getElementById('q').value=query='';filter='all';slotFilter='all';
- slotChips(e);renderReview(e);renderSchedule(e);resultsSection(e,e.families);
+ slotChips(e);renderReview(e);renderOccupancy(e);renderSchedule(e);resultsSection(e,e.families);
  document.getElementById('listHead').textContent=e.dynamic?'Registrations — every question & answer':'Registrations';
  // The "not-confirmed" email button only applies to confirm-flow events.
  document.getElementById('emailPending').classList.toggle('hidden',!e.hasConfirm);
