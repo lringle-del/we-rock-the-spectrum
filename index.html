@@ -126,6 +126,7 @@ h1{font-family:'Libre Caslon Display',Georgia,serif;font-weight:400;font-size:cl
 <div class="slotchips hidden" id="slotchips"></div>
 <div class="tiles" id="tiles"></div>
 <div id="reviewWrap" class="reviewWrap hidden"></div>
+<div id="scheduleWrap" class="reviewWrap hidden"></div>
 <div id="resultsWrap" class="hidden"><div class="section-h">Results by question <span class="hint">across every registration in view</span></div><div class="results" id="results"></div></div>
 <div class="section-h" id="listHead">Registrations</div>
 <div class="controls">
@@ -284,9 +285,37 @@ function renderReview(e){const wrap=document.getElementById('reviewWrap');
  const rows=[...pend,...decided].map(x=>reviewRow(x.f,x.i)).join('');
  wrap.innerHTML='<div class="section-h">Needs review: not part of the autism community <span class="hint">'+pend.length+' awaiting a decision'+(decided.length?(' · '+decided.length+' decided'):'')+'</span></div><div class="reviewlist">'+rows+'</div>';}
 // Rebuild the current event's decision-dependent UI without resetting filters.
+function renderSchedule(e){
+ const wrap=document.getElementById('scheduleWrap');if(!wrap)return;
+ if(!e||!e.dynamic){wrap.className='reviewWrap hidden';wrap.innerHTML='';return;}
+ wrap.className='reviewWrap';
+ const today=new Date();today.setHours(0,0,0,0);
+ const items=[
+  ['2026-08-05','Welcome & Confirm','Everyone, plus each new signup'],
+  ['trigger','You’re confirmed','Auto-sends when a family taps Confirm'],
+  ['2026-08-07','Reminder: two weeks','Everyone'],
+  ['2026-08-14','Reminder: one week','Everyone'],
+  ['2026-08-17','Reminder: 4 days','Everyone'],
+  ['2026-08-19','Reminder: 2 days','Everyone'],
+  ['2026-08-20','Reminder: tomorrow','Everyone'],
+  ['2026-08-21','Reminder: day of','Everyone']
+ ];
+ const fmt=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+ const chip=(txt,bg,fg)=>'<span style="padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;margin-left:8px;background:'+bg+';color:'+fg+'">'+txt+'</span>';
+ const rows=items.map(function(it){
+  const date=it[0],name=it[1],aud=it[2];let status,when;
+  if(date==='trigger'){status=chip('Automatic','#e8f0ff','#2b5bd7');when='On confirm';}
+  else{const dt=new Date(date+'T00:00:00');when=fmt(date);
+   if(dt<today)status=chip('Sent','#e9f9ee','#1f9d55');
+   else if(+dt===+today)status=chip('Today','#fff2e0','#c9721a');
+   else status=chip('Scheduled','#eef0f6','#5b6270');}
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid #e6e8ee;border-radius:10px;background:#fff;margin:6px 0;font-size:14px"><div><b>'+esc(name)+'</b>'+status+'<div style="color:#8a90a0;font-size:12px;margin-top:2px">'+when+' · '+esc(aud)+'</div></div></div>';
+ }).join('');
+ wrap.innerHTML='<div class="section-h">Email schedule <span class="hint">the full campaign</span></div><div class="reviewlist">'+rows+'</div>';
+}
 function refresh(){const e=EV[cur];
  document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
- renderReview(e);
+ renderReview(e);renderSchedule(e);
  listEl.innerHTML=e.families.map((f,i)=>card(f,i,e)).join('');
  apply();}
 const listEl=document.getElementById('list');
