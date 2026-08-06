@@ -164,6 +164,7 @@ let DB=FALLBACK, EV=DB.events, cur=0, filter='all', query='', slotFilter='all';
 // The flag is computed on the server (f.needsReview); their No-answer siblings
 // of a qualifying child are never flagged. Decisions live on the server too.
 function needsReview(f){return !!f.needsReview;}
+function childNoDx(a){return (a.dx||'').trim().toLowerCase()==='no';}
 function decisionOf(f){const s=(f.reviewStatus||'').toLowerCase();
  if(s==='approved')return 'approved';if(s==='declined')return 'declined';return 'pending';}
 function reviewKey(){let k=localStorage.getItem('abt_send_key')||'';
@@ -206,7 +207,7 @@ function tiles(e){const s=mm(e.families);const t=[];t.push(['deep',s.families,'F
  t.push(['',s.dx,'Autism diagnosis','children (Yes)']);t.push(['',s.ly+s.le,'Interested in ABA',s.ly+' yes · '+s.le+' exploring']);t.push(['',s.hc,'Haircuts requested','']);
  return t.map(x=>'<div class="tile '+x[0]+'"><div class="n">'+x[1]+'</div><div class="l">'+x[2]+'</div>'+(x[3]?'<div class="s">'+x[3]+'</div>':'')+'</div>').join('');}
 function segButtons(e){let opts;
- if(e.dynamic)opts=[['all','All'],['review','Needs review'],['approved','Approved'],['declined','Declined']];
+ if(e.dynamic)opts=[['all','All'],['confirmed','Confirmed'],['awaiting','Awaiting'],['review','Needs review'],['declined','Declined']];
  else if(e.hasConfirm)opts=[['all','All'],['conf','Confirmed'],['pend','Not confirmed']];
  else opts=[['all','All'],['Eventbrite','Eventbrite'],['Microsoft Form','Form']];
  return opts.map((o,i)=>'<button data-f="'+o[0]+'"'+(i===0?' class="on"':'')+'>'+o[1]+'</button>').join('');}
@@ -215,7 +216,11 @@ function kids(f){const any=f.attendees.some(a=>a.child||a.dx||a.gain||a.aba);if(
   return '<tr><td class="kname">'+esc(a.child||'—')+'</td><td>'+esc(a.age||'—')+'</td><td>'+pill(a.dx)+'</td><td>'+pill(a.aba)+'</td><td>'+pill(a.looking,'look')+'</td><td class="gain">'+esc(a.gain||'—')+'</td><td>'+hc+'</td></tr>';}).join('');
  return '<table class="ktable"><thead><tr><th>Child</th><th>Age</th><th>Autism dx?</th><th>On ABA?</th><th>Seeking ABA?</th><th>What they want from the day</th><th>Haircut</th></tr></thead><tbody>'+rows+'</tbody></table>';}
 function card(f,i,e){let badge,controls='',tag='';
- if(e.dynamic){badge=decisionBadge(f);controls=decisionControls(f);if(needsReview(f))tag='<span class="tag">Needs review</span>';}
+ if(e.dynamic){
+  // Everyone shows their confirm status; only flagged families get review controls.
+  badge=f.confirmed?'<span class="badge b-conf">✓ Confirmed</span>':'<span class="badge b-pend">Awaiting confirm</span>';
+  if(needsReview(f)){badge=decisionBadge(f);controls=decisionControls(f);tag='<span class="tag">Needs review</span>';}
+ }
  else if(e.hasConfirm)badge=f.confirmed?'<span class="badge b-conf">✓ Confirmed</span>':'<span class="badge b-pend">Not confirmed</span>';
  else badge='<span class="badge '+(f.source==='Microsoft Form'?'b-form':'b-src')+'">'+esc(f.source||'Eventbrite')+'</span>';
  const phone=f.phone?'<span>📞 '+esc(f.phone)+'</span>':'';const slot=f.timeslot?'<span>🕐 '+esc(f.timeslot)+'</span>':'';
@@ -260,8 +265,10 @@ function resultsSection(e,fams){const wrap=document.getElementById('resultsWrap'
 // Tiles for the dynamic event: registrations, guests, approve/reject counts, + a tile per time slot.
 function dynTiles(e){const s=mm(e.families);const t=[];
  let appr=0,rej=0,review=0;for(const f of e.families){const d=decisionOf(f);if(d==='approved')appr++;else if(d==='declined')rej++;if(needsReview(f)&&d==='pending')review++;}
+ const conf=e.families.filter(f=>f.confirmed).length;
  t.push(['deep',s.families,'Registrations','']);t.push(['deep',s.attendees,'Total guests','']);
- t.push(['accent',review,'Needs review','not autism community']);
+ t.push(['accent',conf,'Confirmed',(s.families-conf)+' awaiting']);
+ t.push(['',review,'Needs review','not autism community']);
  t.push(['',appr,'Approved','']);t.push(['',rej,'Declined','']);
  const slots=e.slots||[];const counts={};for(const f of e.families){const k=f.timeslot||'—';counts[k]=(counts[k]||0)+1;}
  for(const sl of slots)t.push(['',counts[sl]||0,sl,'registrations']);
@@ -311,7 +318,8 @@ function renderSchedule(e){
    else status=chip('Scheduled','#eef0f6','#5b6270');}
   return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid #e6e8ee;border-radius:10px;background:#fff;margin:6px 0;font-size:14px"><div><b>'+esc(name)+'</b>'+status+'<div style="color:#8a90a0;font-size:12px;margin-top:2px">'+when+' · '+esc(aud)+'</div></div></div>';
  }).join('');
- wrap.innerHTML='<div class="section-h">Email schedule <span class="hint">the full campaign</span></div><div class="reviewlist">'+rows+'</div>';
+ const conf=e.families.filter(f=>f.confirmed).length;
+ wrap.innerHTML='<div class="section-h">Email schedule <span class="hint">'+conf+' of '+e.families.length+' confirmed (responded) so far</span></div><div class="reviewlist">'+rows+'</div>';
 }
 function refresh(){const e=EV[cur];
  document.getElementById('tiles').innerHTML=e.dynamic?dynTiles(e):tiles(e);
@@ -341,6 +349,7 @@ function renderEvent(){const e=EV[cur];document.getElementById('venue').textCont
 function apply(){const e=EV[cur];const fams=e.families;const visible=[];
  document.querySelectorAll('#list .fam').forEach(el=>{const f=fams[+el.dataset.i];let ok=true;
  if(filter==='conf'&&!f.confirmed)ok=false;if(filter==='pend'&&f.confirmed)ok=false;
+ if(filter==='confirmed'&&!f.confirmed)ok=false;if(filter==='awaiting'&&(f.confirmed||needsReview(f)))ok=false;
  if(filter==='Eventbrite'&&f.source!=='Eventbrite')ok=false;if(filter==='Microsoft Form'&&f.source!=='Microsoft Form')ok=false;
  if(filter==='approved'&&decisionOf(f)!=='approved')ok=false;
  if(filter==='declined'&&decisionOf(f)!=='declined')ok=false;
