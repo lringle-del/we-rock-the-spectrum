@@ -2,7 +2,7 @@
 // The private Eventbrite token lives ONLY in the Vercel Environment Variable
 // EVENTBRITE_TOKEN and is never sent to the browser.
 
-import { listConfirmed, getReviewMap } from "./_store.js";
+import { listConfirmed, getReviewMap, emailEventCount } from "./_store.js";
 
 // A family is flagged for manual review only when EVERY child answered "No" to
 // all three of: autism diagnosis, currently receiving ABA, looking for ABA. Any
@@ -211,6 +211,17 @@ export async function getEvents(token){
     hasConfirm:false, dynamic:true, questions:wrtsQuestions,
     slots:wrtsSlots, families:wrtsFams});
   const out={events};
+  // Funnel counts for the dashboard: Registered -> Delivered -> Opened -> Confirmed.
+  // Delivered/Opened/Clicked come from the Resend webhook (best-effort).
+  try{
+    out.funnel = {
+      registered: wrtsFams.length,
+      delivered: await emailEventCount("delivered"),
+      opened: await emailEventCount("opened"),
+      clicked: await emailEventCount("clicked"),
+      confirmed: wrtsFams.filter(f=>f.confirmed).length
+    };
+  }catch(_){ out.funnel = null; }
   // A plain-English hint about why the list may be empty.
   let hint=null;
   if(discoverError) hint="Eventbrite rejected the token ("+discoverError+"). Check EVENTBRITE_TOKEN is the account's Private Token.";
