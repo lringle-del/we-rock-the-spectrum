@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>We Rock the Spectrum - Full Email Campaign Preview</title>
+<style>
+  :root{ --purple:#6b5bd6; --ink:#1f2430; --muted:#8a90a0; --line:#e6e8ee; --bg:#f3f4f8; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); font-family:Inter,Segoe UI,Arial,sans-serif; color:var(--ink); }
+  .wrap{ max-width:720px; margin:0 auto; padding:28px 18px 60px; }
+  h1{ font-size:24px; margin:0 0 4px; }
+  .sub{ color:var(--muted); font-size:14px; margin:0 0 24px; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:14px; margin:0 0 22px; overflow:hidden; box-shadow:0 1px 3px rgba(20,25,40,.05); }
+  .meta{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding:12px 16px; background:#fafbfe; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .num{ background:var(--purple); color:#fff; width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+  .name{ font-weight:700; font-size:14px; }
+  .pill{ padding:2px 9px; border-radius:999px; font-weight:600; font-size:11.5px; }
+  .aud-all{ background:#e8f0ff; color:#2b5bd7; }
+  .aud-conf{ background:#e9f9ee; color:#1f9d55; }
+  .aud-once{ background:#fff2e0; color:#c9721a; }
+  .when{ color:var(--muted); margin-left:auto; }
+  .body{ padding:20px 22px 24px; font-size:15px; line-height:1.6; }
+  .subject{ font-size:15px; padding:14px 22px; border-bottom:1px dashed var(--line); background:#fff; }
+  .subject b{ color:var(--purple); }
+  .why{ font-weight:600; color:var(--purple); margin:16px 0 6px; }
+  .details{ background:#f4f6fb; border-radius:10px; padding:14px 16px; margin:16px 0; font-size:14.5px; line-height:1.7; }
+  .btn{ display:inline-block; background:var(--purple); color:#fff !important; text-decoration:none; font-weight:700; padding:13px 28px; border-radius:8px; font-size:15px; }
+  .btncenter{ text-align:center; margin:18px 0 6px; }
+  .foot{ color:var(--muted); font-size:12px; border-top:1px solid var(--line); margin-top:22px; padding-top:12px; }
+  .legend{ font-size:12.5px; color:var(--muted); margin:0 0 22px; display:flex; gap:16px; flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>We Rock the Spectrum - Full Email Campaign</h1>
+  <p class="sub">Free Family Afternoon &middot; Friday, Aug 21 &middot; 4:00-8:00 PM &middot; We Rock the Spectrum Kids Gym, La Vista, NE. Every reminder now carries a bit of "why we're doing this." <b>{{first}}</b> and <b>{{slot}}</b> auto-fill per family.</p>
+  <div class="legend">
+    <span><span class="dot" style="background:#2b5bd7"></span> All registered families</span>
+    <span><span class="dot" style="background:#1f9d55"></span> Confirmed families only</span>
+    <span><span class="dot" style="background:#c9721a"></span> One-time / on signup</span>
+  </div>
+
+  <!-- 1 -->
+  <div class="card">
+    <div class="meta"><span class="num">1</span><span class="name">Welcome &amp; Confirm</span><span class="pill aud-once">One-time to current 59 + auto to each new signup</span><span class="when">Now, then on every signup</span></div>
+    <div class="subject">Subject: <b>A warm welcome from Above &amp; Beyond ABA: your Aug 21 details</b></div>
+    <div class="body">
+      <p>Hi {{first}},</p>
+      <p>Thank you for signing up to We Rock the Spectrum, hosted by Above &amp; Beyond ABA Therapy! We're so glad you and your family are joining us. Here's everything you need for the big day.</p>
+      <p class="why">Why we're doing this</p>
+      <p style="margin:0">At Above &amp; Beyond ABA, we wanted to create an afternoon where children can play at their own pace while parents connect with other local autism families, in a welcoming, no-pressure, and genuinely fun environment. It's completely free, and it's our way of showing up for our community.</p>
+      <div class="details">
+        📅 Friday, August 21 (event runs 4:00-8:00 PM)<br>
+        🕒 Your reserved time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>
+        🍕 Pizza will be served &middot; 🎁 Door prizes!
+      </div>
+      <p class="why">Wait until you see the space 🤸</p>
+      <p style="margin:0">We Rock the Spectrum is a sensory gym built entirely for kids like yours: a <b>zip line</b>, <b>trampoline</b>, <b>climbing structures</b>, <b>suspended swings</b>, sensory play, and an arts &amp; crafts corner, all in one safe, judgment-free place. Their whole motto is <em>"Finally a place where you never have to say I'm sorry."</em> Take a peek: <a href="https://werockthespectrumomaha.com/" style="color:#6b5bd6;font-weight:600">werockthespectrumomaha.com</a></p>
+      <p style="margin:16px 0 4px">Please let us know you're coming so we can plan for pizza and door prizes:</p>
+      <div class="btncenter"><a class="btn" href="#">I confirm my spot</a></div>
+      <p>Come as you are, dress comfy, and bring your questions. We'd love to meet you. If anything changes, just reply to this email.</p>
+      <p>See you there!<br>Warmly,<br>The Above &amp; Beyond ABA Team</p>
+      <div class="foot">Tapping "I confirm my spot" marks the family confirmed on your dashboard.</div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="card">
+    <div class="meta"><span class="num">2</span><span class="name">You're confirmed! (our "why")</span><span class="pill aud-conf">Confirmed families</span><span class="when">⚡ Auto-sends the instant they tap Confirm</span></div>
+    <div class="subject">Subject: <b>You're confirmed! 💜 Here's the heart behind our afternoon</b></div>
+    <div class="body">
+      <p>Hi {{first}},</p>
+      <p><b>You're all set, thank you for confirming!</b> It truly means a lot to us.</p>
+      <p>We wanted to share <em>why</em> this afternoon matters so much. Every day, we see how much lighter the world feels for a child when they're somewhere built for them, where they can move, play, and be themselves without anyone asking them to be different.</p>
+      <p>We created this event to give families in our community one afternoon of exactly that: no pressure, no cost, no agenda. Just kids playing their way, and parents connecting with others who get it.</p>
+      <div class="details">
+        <p style="margin:0 0 8px"><strong>Your details (save them!)</strong></p>
+        📅 Friday, August 21 &middot; your time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>
+        🍕 Pizza &middot; 🎁 Door prizes
+      </div>
+      <div class="btncenter"><a class="btn" href="#" style="background:#1f9d55">📅 Add to my calendar</a></div>
+      <p>We can't wait to share it with you.</p>
+      <p>Warmly,<br>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="card">
+    <div class="meta"><span class="num">3</span><span class="name">Reminder + Why &middot; Two weeks</span><span class="pill aud-all">All registered</span><span class="when">Thu, Aug 7</span></div>
+    <div class="subject">Subject: <b>2 weeks to go: the afternoon we built just for your family</b></div>
+    <div class="body">
+      <p>Hi {{first}},</p>
+      <p>Two weeks to go! Here's the heart of it: we created this afternoon so families in our community could have one place with zero pressure, where kids play their way and parents connect with others who truly get it. That's the whole reason, and we can't wait to share it with you.</p>
+      <div class="details">
+        📅 Friday, August 21 &middot; your time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>
+        🍕 Pizza &middot; 🎁 Door prizes
+      </div>
+      <p>Haven't confirmed yet? Tap below so we can plan for you:</p>
+      <div class="btncenter"><a class="btn" href="#">I confirm my spot</a></div>
+      <p>Warmly,<br>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="card">
+    <div class="meta"><span class="num">4</span><span class="name">Reminder + Why &middot; One week</span><span class="pill aud-all">All registered</span><span class="when">Thu, Aug 14</span></div>
+    <div class="subject">Subject: <b>One week away! A space built for your child 🎈</b></div>
+    <div class="body">
+      <p>Hi {{first}},</p>
+      <p>Just <b>one week</b> to go! We chose We Rock the Spectrum for a reason: it's a sensory gym built for kids like yours, with a zip line, trampoline, climbing structures, and suspended swings, where your child never has to hold back. Their motto says it best: <em>"Finally a place where you never have to say I'm sorry."</em></p>
+      <div class="details">
+        📅 Friday, August 21 &middot; your time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>
+        🍕 Pizza &middot; 🎁 Door prizes &middot; <a href="https://werockthespectrumomaha.com/" style="color:#6b5bd6;font-weight:600">see the space</a>
+      </div>
+      <p>If your plans have changed, just reply and let us know.</p>
+      <div class="btncenter"><a class="btn" href="#">I confirm my spot</a></div>
+      <p>Warmly,<br>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="card">
+    <div class="meta"><span class="num">5</span><span class="name">Reminder + Why &middot; 4 days</span><span class="pill aud-all">All registered</span><span class="when">Mon, Aug 17</span></div>
+    <div class="subject">Subject: <b>4 days to go, and what we believe 🎉</b></div>
+    <div class="body">
+      <p>Hi {{first}}, only <b>4 days</b> to go! A quick word on our why: we believe good, compassionate ABA is child-led. It celebrates exactly who your child is rather than asking them to change. Come see that spirit in action on Friday.</p>
+      <div class="details">
+        📅 Friday, Aug 21 &middot; your time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, La Vista &middot; 🍕 Pizza &middot; 🎁 Door prizes
+      </div>
+      <p>See you soon!<br>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="card">
+    <div class="meta"><span class="num">6</span><span class="name">Reminder + Why &middot; 2 days</span><span class="pill aud-all">All registered</span><span class="when">Wed, Aug 19</span></div>
+    <div class="subject">Subject: <b>See you in 2 days!</b></div>
+    <div class="body">
+      <p>Hi {{first}}, just <b>2 days</b> to go! More than anything, this afternoon is about families finding each other, so you'll be surrounded by people who get it.</p>
+      <div class="details">
+        📅 Friday, Aug 21 &middot; your time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>
+        🍕 Pizza &middot; 🎁 Door prizes
+      </div>
+      <div class="btncenter"><a class="btn" href="#" style="background:#1f9d55">📅 Add to my calendar</a></div>
+      <p>We can't wait to meet your family!<br>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="card">
+    <div class="meta"><span class="num">7</span><span class="name">Reminder &middot; Tomorrow</span><span class="pill aud-all">All registered</span><span class="when">Thu, Aug 20</span></div>
+    <div class="subject">Subject: <b>Tomorrow's the day! 🎉</b></div>
+    <div class="body">
+      <p>Hi {{first}}, it's almost here, we'll see you <b>tomorrow</b>! Pizza, door prizes, and lots of play, all for your family. Get a good night's rest.</p>
+      <div class="details">
+        📅 Friday, Aug 21 &middot; your time: <b>{{slot}}</b><br>
+        📍 We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>
+        🍕 Pizza &middot; 🎁 Door prizes
+      </div>
+      <div class="btncenter"><a class="btn" href="#" style="background:#1f9d55">📅 Add to my calendar</a></div>
+      <p>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="card">
+    <div class="meta"><span class="num">8</span><span class="name">Reminder &middot; Today</span><span class="pill aud-all">All registered</span><span class="when">Fri, Aug 21 (morning)</span></div>
+    <div class="subject">Subject: <b>Today! We can't wait to see you 💜</b></div>
+    <div class="body">
+      <p>Hi {{first}}, <b>today's the day!</b> Your time is <b>{{slot}}</b> at We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE. Come as you are: pizza, door prizes, and a joyful afternoon are waiting. See you soon!</p>
+      <p>The Above &amp; Beyond ABA Team</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
