@@ -21,6 +21,22 @@ const CONFIRMED = "wrts:confirmed";       // set of Eventbrite order ids
 const APPROVED  = "wrts:approved";        // set of send ids the approver has approved
 const PREVIEWED = "wrts:previewed";       // set of send ids whose approval preview was emailed
 const REVIEW    = "wrts:review";          // hash: order id -> "approved" | "declined"
+const FLAGS     = "wrts:flags";           // set of one-time flags (e.g. welcome_sent)
+
+// Atomically claim a one-time send so it can never fire twice. Returns true to
+// the FIRST caller only. If Redis is unavailable it returns true (degrade to send).
+export async function claimOnce(flag){
+  const c = await getClient(); if(!c) return true;
+  try{ return (await c.sAdd(FLAGS, String(flag))) === 1; }catch(_){ return true; }
+}
+export async function releaseOnce(flag){
+  const c = await getClient(); if(!c) return;
+  try{ await c.sRem(FLAGS, String(flag)); }catch(_){}
+}
+export async function wasClaimed(flag){
+  const c = await getClient(); if(!c) return false;
+  try{ return !!(await c.sIsMember(FLAGS, String(flag))); }catch(_){ return false; }
+}
 
 // --- review decisions for flagged (non-autism-community) families ---
 export async function setReview(order, status){
