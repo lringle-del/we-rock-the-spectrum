@@ -57,10 +57,18 @@ export default async function handler(req, res){
 
   const live = process.env.EMAIL_LIVE === "1";
   if(action === "approve"){
+    // Approving lets the family into the campaign: mark approved (which removes
+    // the send exclusion) and send them the welcome to start the sequence. They
+    // then confirm via the button and receive reminders like everyone else.
     await setReview(order, "approved");
-    await addConfirmed(order);            // shows as confirmed on the dashboard
-    let emailSent = false;
-    try{ await sendConfirmedEmail(fam); emailSent = live && !!process.env.RESEND_API_KEY; }catch(_){}
+    let emailResult = null;
+    try{
+      const origin = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}`;
+      const r = await fetch(`${origin}/api/send-email?template=welcome&only=${encodeURIComponent(fam.email)}&key=${encodeURIComponent(process.env.CRON_SECRET||"")}`,
+        { method:"POST", headers:{ "Content-Type":"application/json" }, body:"{}" });
+      emailResult = await r.json();
+    }catch(_){}
+    const emailSent = live && !!(emailResult && emailResult.mode === "sent" && emailResult.sent > 0);
     return res.status(200).json({ ok:true, order, action:"approve", emailSent, live });
   }
   // decline

@@ -175,7 +175,7 @@ async function decide(el){
  const act=el.dataset.act; // 'approve' | 'decline'
  const who=f.purchaser||f.email||'this family';
  const msg=act==='approve'
-  ? 'Approve '+who+' and send them the confirmation email?'
+  ? 'Approve '+who+'? They will enter the email sequence (welcome now, then reminders), and can confirm their spot.'
   : 'DECLINE '+who+' and send the "this event is for the autism community" email?';
  if(!confirm(msg))return;
  const key=reviewKey();if(!key){alert('A passphrase is required.');return;}
