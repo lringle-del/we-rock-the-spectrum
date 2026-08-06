@@ -14,6 +14,7 @@
 //   RESEND_API_KEY, EMAIL_LIVE, EMAIL_FROM (optional).
 
 import { getEvents } from "./attendees.js";
+import { listWelcomed, addWelcomed } from "./_store.js";
 import crypto from "crypto";
 
 // Signed per-family confirm link (must match api/confirm.js sigFor).
@@ -129,10 +130,24 @@ export default async function handler(req, res){
     });
   }
 
-  // LIVE: one personalized email per recipient via Resend.
+  // LIVE: personalized emails via Resend's BATCH API (one request per <=100),
+  // so we never trip the per-message rate limit that caused earlier 429s.
   const origin = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}`;
-  const results = { sent:0, failed:0, errors:[] };
-  for(const r of recipients){
+  const isWelcome = template === "welcome";
+  // Optional targeted resend to specific addresses only (comma-separated).
+  const onlySet = new Set(String(body.only || (req.query && req.query.only) || "").split(",").map(s=>s.trim().toLowerCase()).filter(Boolean));
+  // Per-recipient idempotency for the welcome (skip anyone already welcomed).
+  let welcomedSet = new Set();
+  if(isWelcome){ try{ welcomedSet = new Set((await listWelcomed()).map(x=>String(x).toLowerCase())); }catch(_){} }
+
+  const targets = recipients.filter(r=>{
+    const e = r.email.toLowerCase();
+    if(onlySet.size && !onlySet.has(e)) return false;      // targeted resend
+    if(isWelcome && !onlySet.size && welcomedSet.has(e)) return false; // already welcomed
+    return true;
+  });
+
+  const messages = targets.map(r=>{
     const first = r.name ? r.name.trim().split(/\s+/)[0] : "there";
     const slot = r.slot || "your reserved time";
     const confirmUrl = `${origin}/api/confirm?o=${encodeURIComponent(r.order)}&s=${sigFor(r.order)}`;
@@ -140,30 +155,33 @@ export default async function handler(req, res){
       .replace(/\{\{\s*first\s*\}\}/gi, esc(first))
       .replace(/\{\{\s*(slot|time)\s*\}\}/gi, esc(slot))
       .replace(/\{\{\s*confirm_url\s*\}\}/gi, confirmUrl);
-    try{
-      const resp = await fetch("https://api.resend.com/emails", {
-        method:"POST",
-        headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
-        body: JSON.stringify({ from:FROM, to:[r.email], reply_to:REPLY_TO, subject, html:personalized })
-      });
-      if(resp.ok) results.sent++;
-      else { results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: HTTP ${resp.status}`); }
-    }catch(err){ results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: ${String(err && err.message || err)}`); }
+    return { from:FROM, to:[r.email], reply_to:REPLY_TO, subject, html:personalized };
+  });
+
+  // Team copies only on a full send, not on a targeted `only` resend.
+  if(!onlySet.size){
+    const copyHtml = html
+      .replace(/\{\{\s*first\s*\}\}/gi, "Team")
+      .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "(each family sees their own time)")
+      .replace(/\{\{\s*confirm_url\s*\}\}/gi, `${origin}/api/confirm?o=DEMO&s=DEMO`);
+    for(const t of TEAM_COPY) messages.push({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${subject}`, html:copyHtml });
   }
 
-  // Team copies: one copy of the send to internal observers (not per-family).
-  const copyHtml = html
-    .replace(/\{\{\s*first\s*\}\}/gi, "Team")
-    .replace(/\{\{\s*(slot|time)\s*\}\}/gi, "(each family sees their own time)")
-    .replace(/\{\{\s*confirm_url\s*\}\}/gi, `${origin}/api/confirm?o=DEMO&s=DEMO`);
-  for(const t of TEAM_COPY){
+  const results = { sent:0, failed:0, skipped: recipients.length - targets.length, errors:[] };
+  for(let i=0;i<messages.length;i+=100){
+    const chunk = messages.slice(i, i+100);
     try{
-      await fetch("https://api.resend.com/emails", {
+      const resp = await fetch("https://api.resend.com/emails/batch", {
         method:"POST",
         headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
-        body: JSON.stringify({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${subject}`, html:copyHtml })
+        body: JSON.stringify(chunk)
       });
-    }catch(_){}
+      if(resp.ok){ results.sent += chunk.length; }
+      else { results.failed += chunk.length; const t = await resp.text(); results.errors.push(`batch@${i}: HTTP ${resp.status} ${t.slice(0,160)}`); }
+    }catch(err){ results.failed += chunk.length; results.errors.push(`batch@${i}: ${String(err && err.message || err)}`); }
   }
-  return res.status(200).json({ mode:"sent", event:which, audience, teamCopies:TEAM_COPY.length, ...results });
+  // Record welcomed recipients so we never welcome them twice.
+  if(isWelcome && results.sent > 0){ try{ await addWelcomed(targets.map(r=>r.email)); }catch(_){} }
+
+  return res.status(200).json({ mode:"sent", event:which, audience, template: template||null, teamCopies: onlySet.size?0:TEAM_COPY.length, ...results });
 }

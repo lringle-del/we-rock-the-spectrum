@@ -22,6 +22,19 @@ const APPROVED  = "wrts:approved";        // set of send ids the approver has ap
 const PREVIEWED = "wrts:previewed";       // set of send ids whose approval preview was emailed
 const REVIEW    = "wrts:review";          // hash: order id -> "approved" | "declined"
 const FLAGS     = "wrts:flags";           // set of one-time flags (e.g. welcome_sent)
+const WELCOMED  = "wrts:welcomed";        // set of emails already sent the welcome (idempotency)
+
+// --- welcome idempotency (never welcome the same email twice) ---
+export async function listWelcomed(){
+  const c = await getClient(); if(!c) return [];
+  try{ return await c.sMembers(WELCOMED); }catch(_){ return []; }
+}
+export async function addWelcomed(emails){
+  const c = await getClient(); if(!c) return;
+  const arr = [].concat(emails).map(e=>String(e).toLowerCase()).filter(Boolean);
+  if(!arr.length) return;
+  try{ await c.sAdd(WELCOMED, arr); }catch(_){}
+}
 
 // Atomically claim a one-time send so it can never fire twice. Returns true to
 // the FIRST caller only. If Redis is unavailable it returns true (degrade to send).

@@ -262,36 +262,32 @@ export default async function handler(req, res){
     });
   }
 
-  // LIVE: one personalized email per family via Resend.
-  const results = { sent:0, failed:0, errors:[] };
-  for(const r of recipients){
+  // LIVE: personalized reminders via Resend's BATCH API (one request per <=100),
+  // so a full 50+ recipient send never trips the per-message rate limit.
+  const messages = recipients.map(r=>{
     const first = r.name ? r.name.trim().split(/\s+/)[0] : "there";
-    // Re-render per recipient so {{first}} and their time slot are personal.
     const perSlot = plan.track === "weekly"
       ? weeklyEmail(plan.weekIndex, days ?? 0, dateISO, r.slot)
       : countdownEmail(plan.offset, days ?? plan.offset, dateISO, r.slot);
     const html = perSlot.html.replace(/\{\{\s*first\s*\}\}/gi, esc(first));
-    try{
-      const resp = await fetch("https://api.resend.com/emails", {
-        method:"POST",
-        headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
-        body: JSON.stringify({ from:FROM, to:[r.email], reply_to:REPLY_TO, subject: perSlot.subject, html })
-      });
-      if(resp.ok) results.sent++;
-      else { results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: HTTP ${resp.status}`); }
-    }catch(err){ results.failed++; if(results.errors.length < 5) results.errors.push(`${r.email}: ${String(err && err.message || err)}`); }
-  }
-
+    return { from:FROM, to:[r.email], reply_to:REPLY_TO, subject: perSlot.subject, html };
+  });
   // Team copies: one copy of the reminder to internal observers.
   const copyHtml = built.html.replace(/\{\{\s*first\s*\}\}/gi, "Team");
-  for(const t of TEAM_COPY){
+  for(const t of TEAM_COPY) messages.push({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${built.subject}`, html:copyHtml });
+
+  const results = { sent:0, failed:0, errors:[] };
+  for(let i=0;i<messages.length;i+=100){
+    const chunk = messages.slice(i, i+100);
     try{
-      await fetch("https://api.resend.com/emails", {
+      const resp = await fetch("https://api.resend.com/emails/batch", {
         method:"POST",
         headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
-        body: JSON.stringify({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${built.subject}`, html:copyHtml })
+        body: JSON.stringify(chunk)
       });
-    }catch(_){}
+      if(resp.ok){ results.sent += chunk.length; }
+      else { results.failed += chunk.length; const t = await resp.text(); results.errors.push(`batch@${i}: HTTP ${resp.status} ${t.slice(0,160)}`); }
+    }catch(err){ results.failed += chunk.length; results.errors.push(`batch@${i}: ${String(err && err.message || err)}`); }
   }
   return res.status(200).json({ mode:"sent", today:todayISO(), event:which, audience, track:plan.track, subject:built.subject, teamCopies:TEAM_COPY.length, ...results });
 }
