@@ -3,14 +3,18 @@
 // Every call is best-effort: if Redis is unavailable, it degrades quietly so
 // the dashboard and emails never break because of the store.
 
-import { createClient } from "redis";
-
+// Redis is imported lazily inside getClient so a load/build issue with the
+// module can never crash the whole function at startup. If anything fails, we
+// return null and every caller degrades quietly.
 let client = null;
+let _createClient = null;
 async function getClient(){
   if(!process.env.REDIS_URL) return null;
   if(client && client.isOpen) return client;
   try{
-    client = createClient({ url: process.env.REDIS_URL, socket:{ connectTimeout: 3000 } });
+    if(!_createClient){ const m = await import("redis"); _createClient = m.createClient || (m.default && m.default.createClient); }
+    if(!_createClient) return null;
+    client = _createClient({ url: process.env.REDIS_URL, socket:{ connectTimeout: 3000 } });
     client.on("error", ()=>{});
     await client.connect();
   }catch(_){ client = null; }
@@ -23,6 +27,19 @@ const PREVIEWED = "wrts:previewed";       // set of send ids whose approval prev
 const REVIEW    = "wrts:review";          // hash: order id -> "approved" | "declined"
 const FLAGS     = "wrts:flags";           // set of one-time flags (e.g. welcome_sent)
 const WELCOMED  = "wrts:welcomed";        // set of emails already sent the welcome (idempotency)
+
+// --- email delivery/open/click tracking (fed by the Resend webhook) ---
+export async function recordEmailEvent(type, email){
+  const c = await getClient(); if(!c) return;
+  const t = String(type||"").toLowerCase().replace(/[^a-z]/g,"");
+  if(!t || !email) return;
+  try{ await c.sAdd("wrts:evt:"+t, String(email).toLowerCase()); }catch(_){}
+}
+export async function emailEventCount(type){
+  const c = await getClient(); if(!c) return 0;
+  const t = String(type||"").toLowerCase().replace(/[^a-z]/g,"");
+  try{ return await c.sCard("wrts:evt:"+t); }catch(_){ return 0; }
+}
 
 // --- welcome idempotency (never welcome the same email twice) ---
 export async function listWelcomed(){
