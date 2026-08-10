@@ -41,6 +41,23 @@ export async function emailEventCount(type){
   try{ return await c.sCard("wrts:evt:"+t); }catch(_){ return 0; }
 }
 
+// --- Microsoft Form families (upserted by email; merged into the dashboard) ---
+const FORMFAM = "wrts:formfam";   // hash: email(lower) -> JSON family
+export async function saveFormFamilies(families){
+  const c = await getClient(); if(!c) return { added:[], total:0 };
+  const added = [];
+  for(const f of families||[]){
+    const email = String(f&&f.email||"").trim().toLowerCase(); if(!email) continue;
+    try{ const isNew = !(await c.hExists(FORMFAM, email)); await c.hSet(FORMFAM, email, JSON.stringify(f)); if(isNew) added.push(email); }catch(_){}
+  }
+  let total = 0; try{ total = await c.hLen(FORMFAM); }catch(_){}
+  return { added, total };
+}
+export async function listFormFamilies(){
+  const c = await getClient(); if(!c) return [];
+  try{ const h = await c.hGetAll(FORMFAM); return Object.values(h||{}).map(v=>{ try{ return JSON.parse(v); }catch(_){ return null; } }).filter(Boolean); }catch(_){ return []; }
+}
+
 // --- welcome idempotency (never welcome the same email twice) ---
 export async function listWelcomed(){
   const c = await getClient(); if(!c) return [];

@@ -2,7 +2,7 @@
 // The private Eventbrite token lives ONLY in the Vercel Environment Variable
 // EVENTBRITE_TOKEN and is never sent to the browser.
 
-import { listConfirmed, getReviewMap, emailEventCount } from "./_store.js";
+import { listConfirmed, getReviewMap, emailEventCount, listFormFamilies } from "./_store.js";
 
 // A family is flagged for manual review only when EVERY child answered "No" to
 // all three of: autism diagnosis, currently receiving ABA, looking for ABA. Any
@@ -181,6 +181,24 @@ export async function getEvents(token){
       wrtsFams=wrtsFams.concat(fams);
     }catch(_){ /* skip a listing we can't read (bad id / no access) */ }
   }
+  // Merge in Microsoft Form registrations (deduped by email against Eventbrite).
+  try{
+    const seenEmail = new Set(wrtsFams.map(f=>String(f.email||"").toLowerCase()));
+    for(const ff of await listFormFamilies()){
+      const email = String(ff.email||"").trim(); if(!email || seenEmail.has(email.toLowerCase())) continue;
+      seenEmail.add(email.toLowerCase());
+      const kids = (ff.children||[]).map(k=>({
+        child:k.child||"", age:k.age||"", dx:k.dx||"", aba:k.aba||"", looking:k.looking||"", gain:"", haircut:"",
+        qa:[ {q:"Does this child have an autism diagnosis?",a:k.dx||""},
+             {q:"Is this child currently receiving ABA services?",a:k.aba||""},
+             {q:"Are you looking for ABA services or a new provider for this child?",a:k.looking||""} ]
+      }));
+      wrtsFams.push({ source:"Microsoft Form", order:"FORM-"+email.toLowerCase(), date:"",
+        purchaser:ff.name||"", email, phone:ff.phone||"", timeslot:ff.slot||"", slotTime:ff.slot||"",
+        ticket:"", count:kids.length, attendees:kids, eventId:"form", confirmed:false, reviewStatus:null });
+    }
+  }catch(_){ /* form merge is best-effort */ }
+
   // Flag families for review (community screening) from their answers.
   for(const f of wrtsFams) f.needsReview = familyNeedsReview(f);
   // Mark confirmed families and review decisions (best-effort; a Redis hiccup
