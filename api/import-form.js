@@ -5,7 +5,7 @@
 //
 // POST { key, families:[{email,name,phone,slot,children:[{child,age,dx,aba,looking}]}] }
 
-import { saveFormFamilies } from "./_store.js";
+import { saveFormFamilies, removeFormFamilies } from "./_store.js";
 
 function safe(s){ try{ return JSON.parse(s || "{}"); }catch(_){ return {}; } }
 function readBody(req){
@@ -22,5 +22,7 @@ export default async function handler(req, res){
   if(key !== String(process.env.CRON_SECRET || "")) return res.status(401).json({ error:"unauthorized" });
   const families = Array.isArray(body.families) ? body.families : [];
   const { added, total } = await saveFormFamilies(families);
-  return res.status(200).json({ ok:true, received: families.length, added, addedCount: added.length, totalForm: total });
+  let removed = 0;
+  if(Array.isArray(body.remove) && body.remove.length) removed = await removeFormFamilies(body.remove);
+  return res.status(200).json({ ok:true, received: families.length, added, addedCount: added.length, removed, totalForm: total });
 }

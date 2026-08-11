@@ -57,6 +57,11 @@ export async function listFormFamilies(){
   const c = await getClient(); if(!c) return [];
   try{ const h = await c.hGetAll(FORMFAM); return Object.values(h||{}).map(v=>{ try{ return JSON.parse(v); }catch(_){ return null; } }).filter(Boolean); }catch(_){ return []; }
 }
+export async function removeFormFamilies(emails){
+  const c = await getClient(); if(!c) return 0; let n=0;
+  for(const e of [].concat(emails||[])){ try{ n += await c.hDel(FORMFAM, String(e).trim().toLowerCase()); }catch(_){} }
+  return n;
+}
 
 // --- welcome idempotency (never welcome the same email twice) ---
 export async function listWelcomed(){
