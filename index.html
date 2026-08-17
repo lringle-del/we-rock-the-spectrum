@@ -125,6 +125,7 @@ h1{font-family:'Libre Caslon Display',Georgia,serif;font-weight:400;font-size:cl
 <div class="venue" id="venue"></div>
 <div class="slotchips hidden" id="slotchips"></div>
 <div class="tiles" id="tiles"></div>
+<div style="text-align:right;margin:4px 0"><a href="#" id="resetKeyLink" style="font-size:12px;color:#8a90a0">Approve/Decline passphrase not working? Reset it</a></div>
 <div id="reviewWrap" class="reviewWrap hidden"></div>
 <div id="funnelWrap" class="reviewWrap hidden"></div>
 <div id="occWrap" class="reviewWrap hidden"></div>
@@ -170,8 +171,8 @@ function needsReview(f){return !!f.needsReview;}
 function childNoDx(a){return (a.dx||'').trim().toLowerCase()==='no';}
 function decisionOf(f){const s=(f.reviewStatus||'').toLowerCase();
  if(s==='approved')return 'approved';if(s==='declined')return 'declined';return 'pending';}
-function reviewKey(){let k=localStorage.getItem('abt_send_key')||'';
- if(!k){k=prompt('Enter the passphrase (CRON_SECRET from Vercel) to approve or decline families.')||'';if(k)localStorage.setItem('abt_send_key',k);}return k;}
+function reviewKey(){let k=(localStorage.getItem('abt_send_key')||'').trim();
+ if(!k){k=(prompt('Enter the passphrase (CRON_SECRET from Vercel) to approve or decline families.')||'').trim();if(k)localStorage.setItem('abt_send_key',k);}return k;}
 async function decide(el){
  const row=el.closest('[data-i]');if(!row)return;const f=EV[cur].families[+row.dataset.i];if(!f)return;
  const act=el.dataset.act; // 'approve' | 'decline'
@@ -363,6 +364,7 @@ function refresh(){const e=EV[cur];
  renderReview(e);renderSchedule(e);
  listEl.innerHTML=e.families.map((f,i)=>card(f,i,e)).join('');
  apply();}
+document.getElementById('resetKeyLink').addEventListener('click',ev=>{ev.preventDefault();localStorage.removeItem('abt_send_key');alert('Cleared. Click Approve or Decline on a family and re-enter the passphrase exactly (no extra spaces).');});
 const listEl=document.getElementById('list');
 function buildHeader(){const allFams=EV.reduce((a,e)=>a.concat(e.families),[]);const combined=mm(allFams);
  const tabsEl=document.getElementById('tabs');
@@ -411,7 +413,7 @@ document.getElementById('cAudience').addEventListener('click',ev=>{if(ev.target.
 function composeAudience(){const on=document.querySelector('#cAudience .on');return on?on.dataset.a:'all';}
 document.getElementById('composeBtn').addEventListener('click',()=>{const p=document.getElementById('compose');p.classList.toggle('hidden');if(!p.classList.contains('hidden'))document.getElementById('cSubject').focus();});
 function showOut(msg){const o=document.getElementById('cOut');o.textContent=msg;o.classList.add('show');}
-function sendKey(){let k=localStorage.getItem('abt_send_key')||'';if(!k){k=prompt('Enter the send passphrase (SEND_SECRET set in Vercel). Leave blank to just preview recipients.')||'';if(k)localStorage.setItem('abt_send_key',k);}return k;}
+function sendKey(){let k=(localStorage.getItem('abt_send_key')||'').trim();if(!k){k=(prompt('Enter the send passphrase (SEND_SECRET set in Vercel). Leave blank to just preview recipients.')||'').trim();if(k)localStorage.setItem('abt_send_key',k);}return k;}
 async function composeCall(doSend){const e=EV[cur];const subject=document.getElementById('cSubject').value.trim();
  const body=document.getElementById('cBody').value;
  if(doSend&&(!subject||!body.trim())){showOut('Add a subject and a message first.');return;}
