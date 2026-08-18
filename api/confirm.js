@@ -142,7 +142,7 @@ export default async function handler(req, res){
   if(!order || s !== sigFor(order)){
     return res.status(400).send(page("Invalid link",
       `<div style="font-size:40px">🤔</div><h2 style="margin:10px 0">This link looks invalid</h2>`
-      + `<p style="color:#5b6270">Please use the button in your email, or just reply and we'll help you confirm.</p>`));
+      + `<p style="color:#5b6270">Please use the button in your email, or email lringle@abtaba.com and we'll help you confirm.</p>`));
   }
 
   // Find the family first so we can screen for the review gate.

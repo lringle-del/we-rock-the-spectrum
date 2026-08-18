@@ -109,7 +109,7 @@ function shell(inner){
     + inner
     + `<hr style="border:none;border-top:1px solid #e6e8ee;margin:26px 0 14px">`
     + `<p style="font-size:12px;color:#8a90a0;margin:0">You’re receiving this because you registered for our free event at ${esc(VENUE)}. `
-    + `If you can no longer make it, just reply to this email and we’ll take you off the list.</p>`
+    + `If you can no longer make it, just reply to this email or reach us at lringle@abtaba.com and we’ll take you off the list.</p>`
     + `</div>`;
 }
 function eventLine(dateISO, slot){
@@ -193,7 +193,7 @@ function countdownEmail(offset, days, dateISO, slot){
     + `<p style="margin:16px 0 4px">Haven’t confirmed yet? Tap below so we know to expect you:</p>`
     + confirmButton()
     + `<p>The full address is in your Eventbrite confirmation email. If anything changes on your end, `
-    + `just reply here and let us know.</p>`
+    + `just reply here or email lringle@abtaba.com and let us know.</p>`
     + `<p>See you soon,<br>The Above &amp; Beyond ABA Team</p>`
   );
   return { subject: c.subject, html };
