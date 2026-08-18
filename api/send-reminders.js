@@ -162,17 +162,20 @@ function countdownEmail(offset, days, dateISO, slot){
     2: {
       subject: `See you in 2 days!`,
       lead: `<strong>2 days</strong> to go! We can’t wait to see you and your family.`,
-      why: `More than anything, this afternoon is about families finding each other, so you’ll be surrounded by people who truly get it.`
+      why: `More than anything, this afternoon is about families finding each other, so you’ll be surrounded by people who truly get it.`,
+      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you this Friday! If you’ve already confirmed your spot, you’re all set, no need to do anything else. If you have any questions, just reach out to lringle@abtaba.com.`
     },
     1: {
       subject: `Tomorrow’s the day! 🎉`,
       lead: `It’s almost here — we’ll see you <strong>tomorrow</strong>!`,
-      why: `This whole event is about giving your family one afternoon to just be, together with people who understand.`
+      why: `This whole event is about giving your family one afternoon to just be, together with people who understand.`,
+      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you this Friday! If you’ve already confirmed your spot, you’re all set, no need to do anything else. If you have any questions, just reach out to lringle@abtaba.com.`
     },
     0: {
       subject: `Today’s the day! 🎉`,
       lead: `<strong>Today’s the day!</strong> We’re all set up and ready to welcome you.`,
-      why: `Today is exactly why we do this: a whole afternoon built so your child can play their way, and your family can feel at home.`
+      why: `Today is exactly why we do this: a whole afternoon built so your child can play their way, and your family can feel at home.`,
+      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you today! If you’ve already confirmed your spot, you’re all set, no need to do anything else. If you have any questions, just reach out to lringle@abtaba.com.`
     }
   };
   const c = copy[offset] || {
@@ -182,6 +185,7 @@ function countdownEmail(offset, days, dateISO, slot){
   };
   const html = shell(
     `<p>Hi {{first}},</p>`
+    + (c.intro ? `<p>${c.intro}</p>` : "")
     + `<p>${c.lead}</p>`
     + `<p>${c.why}</p>`
     + eventLine(dateISO, slot)
