@@ -13,10 +13,26 @@ export function sigFor(order){
 }
 function esc(s){ return String(s||"").replace(/[&<>"]/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c])); }
 
-function page(title, inner){
+function page(title, inner, extra){
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>`
     + `<body style="font-family:Inter,Segoe UI,Arial,sans-serif;background:#f3f4f8;margin:0;padding:44px 16px;color:#1f2430">`
-    + `<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:34px 28px;text-align:center;box-shadow:0 1px 4px rgba(20,25,40,.08)">${inner}</div></body></html>`;
+    + `<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;padding:34px 28px;text-align:center;box-shadow:0 1px 4px rgba(20,25,40,.08)">${inner}</div>${extra||""}</body></html>`;
+}
+// A real popup (native <dialog>) that opens automatically right after confirming,
+// offering all three calendar options. "Maybe later" just closes it.
+function calendarDialog(slot){
+  const btn=(href,label,bg)=>`<a href="${href}" style="display:block;background:${bg};color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:8px;font-size:15px;margin:6px 0">${label}</a>`;
+  return `<dialog id="calDlg" style="border:none;border-radius:16px;padding:28px 26px;max-width:360px;width:90%;box-shadow:0 8px 30px rgba(20,25,40,.25)">`
+    + `<div style="text-align:center;font-family:Inter,Segoe UI,Arial,sans-serif;color:#1f2430">`
+    + `<div style="font-size:34px">📅</div>`
+    + `<h3 style="margin:8px 0 4px">Add this to your calendar?</h3>`
+    + `<p style="color:#5b6270;font-size:14px;margin:0 0 16px">So you don't forget Friday, August 21${slot?` at ${esc(slot)}`:""}.</p>`
+    + btn(calLink(slot),"Google Calendar","#1f9d55")
+    + btn(outlookLink(slot),"Outlook","#2b5bd7")
+    + btn(icsLink(slot),"Apple / Download .ics","#6b5bd7")
+    + `<button onclick="document.getElementById('calDlg').close()" style="margin-top:10px;background:none;border:none;color:#8a90a0;font-size:13px;cursor:pointer;text-decoration:underline">Maybe later</button>`
+    + `</div></dialog>`
+    + `<script>try{document.getElementById('calDlg').showModal();}catch(e){}</script>`;
 }
 
 // La Vista, NE is Central (CDT, UTC-5 in August). Build a Google Calendar link
@@ -34,9 +50,26 @@ function calLink(slot){
   const det  = encodeURIComponent(`Your reserved time is ${slot||"in your confirmation"}. Pizza and door prizes!`);
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${calStartUTC(slot)}/20260822T010000Z&location=${loc}&details=${det}`;
 }
+function outlookLink(slot){
+  const subject = encodeURIComponent("We Rock the Spectrum - Free Family Afternoon");
+  const loc = encodeURIComponent("We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128");
+  const body = encodeURIComponent(`Your reserved time is ${slot||"in your confirmation"}. Pizza and door prizes!`);
+  const s = calStartUTC(slot);
+  const start = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}T${s.slice(9,11)}:${s.slice(11,13)}:00Z`;
+  return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${subject}&location=${loc}&body=${body}&startdt=${start}&enddt=2026-08-22T01:00:00Z&allday=false&path=/calendar/action/compose`;
+}
+function icsLink(slot){ return `https://we-rock-the-spectrum.vercel.app/api/calendar-ics?slot=${encodeURIComponent(slot||"")}`; }
 
+// Three calendar options, works everywhere: Google & Outlook web links, plus a
+// downloadable .ics for Apple Calendar / Outlook desktop.
 function calButton(slot){
-  return `<div style="margin:22px 0 4px"><a href="${calLink(slot)}" style="display:inline-block;background:#1f9d55;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:8px;font-size:15px">📅 Add to my calendar</a></div>`;
+  const btn = (href,label,bg)=>`<a href="${href}" style="display:inline-block;background:${bg};color:#fff;text-decoration:none;font-weight:700;padding:11px 18px;border-radius:8px;font-size:14px;margin:4px">${label}</a>`;
+  return `<div style="margin:22px 0 4px;text-align:center">`
+    + `<p style="margin:0 0 10px;font-weight:600;color:#1f2430">Add it to your calendar</p>`
+    + btn(calLink(slot),"📅 Google Calendar","#1f9d55")
+    + btn(outlookLink(slot),"📅 Outlook","#2b5bd7")
+    + btn(icsLink(slot),"📅 Apple / Download .ics","#6b5bd7")
+    + `</div>`;
 }
 function confirmedEmailHtml(first, slot){
   return `<div style="font-family:Inter,Segoe UI,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1f2430;max-width:560px;margin:0 auto">`
@@ -48,7 +81,7 @@ function confirmedEmailHtml(first, slot){
     +   `&#128197; Friday, August 21 &middot; your time: <strong>${esc(slot||"see your registration")}</strong><br>`
     +   `&#128205; We Rock the Spectrum Kids Gym, 10717 Virginia Plaza, Suite 113, La Vista, NE 68128<br>`
     +   `&#127829; Pizza &middot; &#127873; Door prizes</div>`
-    + `<div style="text-align:center;margin:8px 0 24px"><a href="${calLink(slot)}" style="display:inline-block;background:#1f9d55;color:#fff;text-decoration:none;font-weight:700;padding:14px 30px;border-radius:8px;font-size:16px">&#128197; Add to my calendar</a></div>`
+    + calButton(slot)
     + `<p>We can't wait to share it with you.</p><p>Warmly,<br>The Above &amp; Beyond ABA Team</p></div>`;
 }
 
@@ -92,7 +125,8 @@ export default async function handler(req, res){
       `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
       + `<p style="font-size:17px">Thanks, Liba! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
       + calButton("6:45 PM")
-      + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email is on its way to your inbox. (This is the real end-to-end flow, sending only to you.)</p>`));
+      + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email is on its way to your inbox. (This is the real end-to-end flow, sending only to you.)</p>`,
+      calendarDialog("6:45 PM")));
   }
 
   // Harmless demo link used in sample emails: shows the success page, writes nothing, sends nothing.
@@ -101,7 +135,8 @@ export default async function handler(req, res){
       `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
       + `<p style="font-size:17px">Thanks! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
       + calButton("6:45 PM")
-      + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">(This is a sample. Real links confirm the family and email them the details.)</p>`));
+      + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">(This is a sample. Real links confirm the family and email them the details.)</p>`,
+      calendarDialog("6:45 PM")));
   }
 
   if(!order || s !== sigFor(order)){
@@ -136,5 +171,6 @@ export default async function handler(req, res){
     `<div style="font-size:46px">🎉</div><h2 style="margin:10px 0 6px">You're confirmed!</h2>`
     + `<p style="font-size:17px">Thanks, ${first}! We can't wait to see your family on <strong>Friday, August 21</strong>.</p>`
     + calButton(slot2)
-    + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email with all the details is on its way.</p>`));
+    + `<p style="color:#8a90a0;font-size:13px;margin-top:18px">A confirmation email with all the details is on its way.</p>`,
+    calendarDialog(slot2)));
 }

@@ -314,19 +314,19 @@ function renderSchedule(e){
  const sentDates=new Set((DB&&DB.sentReminderDates)||[]);
  const welcomedCount=(DB&&DB.welcomedCount)||0;
  const items=[
-  ['2026-08-05','welcome','Welcome & Confirm','Everyone, plus each new signup'],
-  ['trigger','trigger','You’re confirmed','Auto-sends when a family taps Confirm'],
-  ['2026-08-07','date','Reminder: two weeks','Everyone'],
-  ['2026-08-14','date','Reminder: one week','Everyone'],
-  ['2026-08-17','date','Reminder: 4 days','Everyone'],
-  ['2026-08-19','date','Reminder: 2 days','Everyone'],
-  ['2026-08-20','date','Reminder: tomorrow','Everyone'],
-  ['2026-08-21','date','Reminder: day of','Everyone']
+  ['2026-08-05','welcome','Welcome & Confirm','Everyone, plus each new signup',1],
+  ['trigger','trigger','You’re confirmed','Auto-sends when a family taps Confirm',2],
+  ['2026-08-07','date','Reminder: two weeks','Everyone',3],
+  ['2026-08-14','date','Reminder: one week','Everyone',4],
+  ['2026-08-17','date','Reminder: 4 days','Everyone',5],
+  ['2026-08-19','date','Reminder: 2 days','Everyone',6],
+  ['2026-08-20','date','Reminder: tomorrow','Everyone',7],
+  ['2026-08-21','date','Reminder: day of','Everyone',8]
  ];
  const fmt=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
  const chip=(txt,bg,fg)=>'<span style="padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;margin-left:8px;background:'+bg+';color:'+fg+'">'+txt+'</span>';
  const rows=items.map(function(it){
-  const date=it[0],kind=it[1],name=it[2],aud=it[3];let status,when;
+  const date=it[0],kind=it[1],name=it[2],aud=it[3],num=it[4];let status,when;
   if(kind==='trigger'){status=chip('Automatic','#e8f0ff','#2b5bd7');when='On confirm';}
   else if(kind==='welcome'){when=fmt(date);
    status=welcomedCount>0?chip(welcomedCount+' sent','#e9f9ee','#1f9d55'):chip('Not sent yet','#fdeceb','#d9534f');}
@@ -335,7 +335,8 @@ function renderSchedule(e){
    else if(dt<today)status=chip('Missed — not sent','#fdeceb','#d9534f');
    else if(+dt===+today)status=chip('Today — not sent yet','#fff2e0','#c9721a');
    else status=chip('Scheduled','#eef0f6','#5b6270');}
-  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid #e6e8ee;border-radius:10px;background:#fff;margin:6px 0;font-size:14px"><div><b>'+esc(name)+'</b>'+status+'<div style="color:#8a90a0;font-size:12px;margin-top:2px">'+when+' · '+esc(aud)+'</div></div></div>';
+  const preview='<a href="/emails.html#email-'+num+'" target="_blank" rel="noopener" style="font-size:12px;color:#6b5bd6;text-decoration:none;font-weight:600;white-space:nowrap">👁 Preview</a>';
+  return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid #e6e8ee;border-radius:10px;background:#fff;margin:6px 0;font-size:14px"><div><b>'+esc(name)+'</b>'+status+'<div style="color:#8a90a0;font-size:12px;margin-top:2px">'+when+' · '+esc(aud)+'</div></div>'+preview+'</div>';
  }).join('');
  const conf=e.families.filter(f=>f.confirmed).length;
  wrap.innerHTML='<div class="section-h">Email schedule <span class="hint">'+conf+' of '+e.families.length+' confirmed (responded) so far</span></div><div class="reviewlist">'+rows+'</div>';
@@ -353,7 +354,16 @@ function renderFunnel(e){
   return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span><b>'+label+'</b></span><span style="color:#5b6270"><b>'+n+'</b>'+(label==='Registered'?'':(' · '+pct+'%'))+'</span></div><div style="background:#eef0f6;border-radius:8px;height:22px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:'+color+'"></div></div></div>';
  }).join('');
  const note=trackingOn?'':'<div style="font-size:12px;color:#8a90a0;margin-top:8px">Delivered &amp; Opened stay at 0 until Resend open-tracking + the webhook are connected.</div>';
- wrap.innerHTML='<div class="section-h">Flow at a glance <span class="hint">Registered → Delivered → Opened → Confirmed</span></div>'+rows+note;
+ let rates='';
+ if(trackingOn){
+  const delivered=fn.delivered||0,opened=fn.opened||0,clicked=fn.clicked||0;
+  const openRate=delivered>0?Math.round(opened/delivered*100):(reg>0?Math.round(opened/reg*100):0);
+  const clickRate=opened>0?Math.round(clicked/opened*100):0;
+  rates='<div style="display:flex;gap:18px;margin-top:10px;font-size:13px;color:#5b6270">'
+   +'<span>📬 <b>'+openRate+'%</b> open rate</span>'
+   +'<span>🖱️ <b>'+clickRate+'%</b> click rate (of opens)</span></div>';
+ }
+ wrap.innerHTML='<div class="section-h">Flow at a glance <span class="hint">Registered → Delivered → Opened → Confirmed</span></div>'+rows+rates+note;
 }
 function renderOccupancy(e){
  const wrap=document.getElementById('occWrap');if(!wrap)return;
