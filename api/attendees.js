@@ -2,7 +2,7 @@
 // The private Eventbrite token lives ONLY in the Vercel Environment Variable
 // EVENTBRITE_TOKEN and is never sent to the browser.
 
-import { listConfirmed, getReviewMap, emailEventCount, listFormFamilies } from "./_store.js";
+import { listConfirmed, getReviewMap, emailEventCount, listFormFamilies, listSentReminderDates, listWelcomed } from "./_store.js";
 
 // A family is flagged for manual review only when EVERY child answered "No" to
 // all three of: autism diagnosis, currently receiving ABA, looking for ABA. Any
@@ -240,6 +240,10 @@ export async function getEvents(token){
       confirmed: wrtsFams.filter(f=>f.confirmed).length
     };
   }catch(_){ out.funnel = null; }
+  // Real dates a reminder actually sent (results.sent>0), so the dashboard
+  // never shows "Sent" for a date that only looks past on the calendar.
+  try{ out.sentReminderDates = await listSentReminderDates(); }catch(_){ out.sentReminderDates = []; }
+  try{ out.welcomedCount = (await listWelcomed()).length; }catch(_){ out.welcomedCount = 0; }
   // A plain-English hint about why the list may be empty.
   let hint=null;
   if(discoverError) hint="Eventbrite rejected the token ("+discoverError+"). Check EVENTBRITE_TOKEN is the account's Private Token.";

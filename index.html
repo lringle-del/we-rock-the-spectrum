@@ -308,24 +308,32 @@ function renderSchedule(e){
  if(!e||!e.dynamic){wrap.className='reviewWrap hidden';wrap.innerHTML='';return;}
  wrap.className='reviewWrap';
  const today=new Date();today.setHours(0,0,0,0);
+ // 'welcome' and each reminder date are checked against REAL send confirmations
+ // from the server (DB.sentReminderDates / DB.welcomedCount), never guessed
+ // from the calendar alone — a past date with no confirmed send shows "Missed".
+ const sentDates=new Set((DB&&DB.sentReminderDates)||[]);
+ const welcomedCount=(DB&&DB.welcomedCount)||0;
  const items=[
-  ['2026-08-05','Welcome & Confirm','Everyone, plus each new signup'],
-  ['trigger','You’re confirmed','Auto-sends when a family taps Confirm'],
-  ['2026-08-07','Reminder: two weeks','Everyone'],
-  ['2026-08-14','Reminder: one week','Everyone'],
-  ['2026-08-17','Reminder: 4 days','Everyone'],
-  ['2026-08-19','Reminder: 2 days','Everyone'],
-  ['2026-08-20','Reminder: tomorrow','Everyone'],
-  ['2026-08-21','Reminder: day of','Everyone']
+  ['2026-08-05','welcome','Welcome & Confirm','Everyone, plus each new signup'],
+  ['trigger','trigger','You’re confirmed','Auto-sends when a family taps Confirm'],
+  ['2026-08-07','date','Reminder: two weeks','Everyone'],
+  ['2026-08-14','date','Reminder: one week','Everyone'],
+  ['2026-08-17','date','Reminder: 4 days','Everyone'],
+  ['2026-08-19','date','Reminder: 2 days','Everyone'],
+  ['2026-08-20','date','Reminder: tomorrow','Everyone'],
+  ['2026-08-21','date','Reminder: day of','Everyone']
  ];
  const fmt=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
  const chip=(txt,bg,fg)=>'<span style="padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;margin-left:8px;background:'+bg+';color:'+fg+'">'+txt+'</span>';
  const rows=items.map(function(it){
-  const date=it[0],name=it[1],aud=it[2];let status,when;
-  if(date==='trigger'){status=chip('Automatic','#e8f0ff','#2b5bd7');when='On confirm';}
-  else{const dt=new Date(date+'T00:00:00');when=fmt(date);
-   if(dt<today)status=chip('Sent','#e9f9ee','#1f9d55');
-   else if(+dt===+today)status=chip('Today','#fff2e0','#c9721a');
+  const date=it[0],kind=it[1],name=it[2],aud=it[3];let status,when;
+  if(kind==='trigger'){status=chip('Automatic','#e8f0ff','#2b5bd7');when='On confirm';}
+  else if(kind==='welcome'){when=fmt(date);
+   status=welcomedCount>0?chip(welcomedCount+' sent','#e9f9ee','#1f9d55'):chip('Not sent yet','#fdeceb','#d9534f');}
+  else{const dt=new Date(date+'T00:00:00');when=fmt(date);const wasSent=sentDates.has(date);
+   if(wasSent)status=chip('Sent','#e9f9ee','#1f9d55');
+   else if(dt<today)status=chip('Missed — not sent','#fdeceb','#d9534f');
+   else if(+dt===+today)status=chip('Today — not sent yet','#fff2e0','#c9721a');
    else status=chip('Scheduled','#eef0f6','#5b6270');}
   return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid #e6e8ee;border-radius:10px;background:#fff;margin:6px 0;font-size:14px"><div><b>'+esc(name)+'</b>'+status+'<div style="color:#8a90a0;font-size:12px;margin-top:2px">'+when+' · '+esc(aud)+'</div></div></div>';
  }).join('');

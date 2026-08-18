@@ -30,6 +30,7 @@
 //   /api/send-reminders?key=CRON_SECRET&type=countdown&days=5  → force the 5-day email
 
 import { getEvents } from "./attendees.js";
+import { recordReminderSentDate } from "./_store.js";
 import crypto from "crypto";
 
 // Signed per-family confirm link (must match api/confirm.js sigFor).
@@ -315,5 +316,7 @@ export default async function handler(req, res){
       else { results.failed += chunk.length; const t = await resp.text(); results.errors.push(`batch@${i}: HTTP ${resp.status} ${t.slice(0,160)}`); }
     }catch(err){ results.failed += chunk.length; results.errors.push(`batch@${i}: ${String(err && err.message || err)}`); }
   }
+  // Record the real send so the dashboard shows truth instead of guessing from the calendar date.
+  if(results.sent > 0){ try{ await recordReminderSentDate(todayISO()); }catch(_){} }
   return res.status(200).json({ mode:"sent", today:todayISO(), event:which, audience, track:plan.track, subject:built.subject, teamCopies:TEAM_COPY.length, ...results });
 }

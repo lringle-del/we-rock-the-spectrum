@@ -27,6 +27,17 @@ const PREVIEWED = "wrts:previewed";       // set of send ids whose approval prev
 const REVIEW    = "wrts:review";          // hash: order id -> "approved" | "declined"
 const FLAGS     = "wrts:flags";           // set of one-time flags (e.g. welcome_sent)
 const WELCOMED  = "wrts:welcomed";        // set of emails already sent the welcome (idempotency)
+const SENTDATES = "wrts:sentReminderDates"; // set of ISO dates a reminder ACTUALLY sent (sent>0)
+
+// --- real reminder-send tracking (so the dashboard shows truth, not guesses) ---
+export async function recordReminderSentDate(dateISO){
+  const c = await getClient(); if(!c) return;
+  try{ await c.sAdd(SENTDATES, String(dateISO)); }catch(_){}
+}
+export async function listSentReminderDates(){
+  const c = await getClient(); if(!c) return [];
+  try{ return await c.sMembers(SENTDATES); }catch(_){ return []; }
+}
 
 // --- email delivery/open/click tracking (fed by the Resend webhook) ---
 export async function recordEmailEvent(type, email){
