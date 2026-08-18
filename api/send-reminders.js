@@ -159,7 +159,7 @@ function countdownEmail(offset, days, dateISO, slot){
     3: {
       subject: `3 days away — a few quick details`,
       lead: `Only <strong>3 days</strong> to go! A quick note so you know what to expect when you arrive.`,
-      why: `A quick word on our why: we believe good, compassionate ABA is child-led. It celebrates exactly who your child is, rather than asking them to change.`,
+      why: `A quick word on our why: we believe good, compassionate ABA is child-led. It celebrates exactly who your child is, rather than asking them to change. That’s why we’re hosting this event, a place where your child learns in an environment they’ll enjoy.`,
       intro: `You signed up for our free event at We Rock the Spectrum, hosted by Above &amp; Beyond ABA, and we’re so excited to see you this Friday!`
     },
     2: {
