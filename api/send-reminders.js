@@ -151,32 +151,39 @@ function countdownEmail(offset, days, dateISO, slot){
   const copy = {
     5: {
       subject: `5 days to go — your family event at ${VENUE}`,
-      lead: `We’re just <strong>5 days</strong> away and so excited to meet you! Here’s everything in one place so the day is easy and stress-free.`
+      lead: `We’re just <strong>5 days</strong> away and so excited to meet you! Here’s everything in one place so the day is easy and stress-free.`,
+      why: `A quick reason why: we created this free afternoon so families in our community could have one space with zero pressure, kids playing their way and parents connecting with people who truly get it.`
     },
     3: {
       subject: `3 days away — a few quick details`,
-      lead: `Only <strong>3 days</strong> to go! A quick note so you know what to expect when you arrive.`
+      lead: `Only <strong>3 days</strong> to go! A quick note so you know what to expect when you arrive.`,
+      why: `A quick word on our why: we believe good, compassionate ABA is child-led. It celebrates exactly who your child is, rather than asking them to change.`
     },
     2: {
       subject: `See you in 2 days!`,
-      lead: `<strong>2 days</strong> to go! We can’t wait to see you and your family.`
+      lead: `<strong>2 days</strong> to go! We can’t wait to see you and your family.`,
+      why: `More than anything, this afternoon is about families finding each other, so you’ll be surrounded by people who truly get it.`
     },
     1: {
       subject: `Tomorrow’s the day! 🎉`,
-      lead: `It’s almost here — we’ll see you <strong>tomorrow</strong>!`
+      lead: `It’s almost here — we’ll see you <strong>tomorrow</strong>!`,
+      why: `This whole event is about giving your family one afternoon to just be, together with people who understand.`
     },
     0: {
       subject: `Today’s the day! 🎉`,
-      lead: `<strong>Today’s the day!</strong> We’re all set up and ready to welcome you.`
+      lead: `<strong>Today’s the day!</strong> We’re all set up and ready to welcome you.`,
+      why: `Today is exactly why we do this: a whole afternoon built so your child can play their way, and your family can feel at home.`
     }
   };
   const c = copy[offset] || {
     subject: `Reminder — your event is ${dayWord(days)}`,
-    lead: `A friendly reminder that our free family event is <strong>${dayWord(days)}</strong>.`
+    lead: `A friendly reminder that our free family event is <strong>${dayWord(days)}</strong>.`,
+    why: `We created this free afternoon so families in our community could have one space with zero pressure and lots of play.`
   };
   const html = shell(
     `<p>Hi {{first}},</p>`
     + `<p>${c.lead}</p>`
+    + `<p>${c.why}</p>`
     + eventLine(dateISO, slot)
     + `<ul style="margin:14px 0;padding-left:20px">`
     +   `<li>Arriving a few minutes early helps us get everyone settled.</li>`

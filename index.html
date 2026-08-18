@@ -313,15 +313,18 @@ function renderSchedule(e){
  // from the calendar alone — a past date with no confirmed send shows "Missed".
  const sentDates=new Set((DB&&DB.sentReminderDates)||[]);
  const welcomedCount=(DB&&DB.welcomedCount)||0;
+ // Real dates the server code actually fires on: weekly nurture every
+ // Wednesday while >5 days out (Jul 29 / Aug 5 / Aug 12), then countdown
+ // offsets 5,3,2,1,0 before Aug 21 = Aug 16/18/19/20/21.
  const items=[
   ['2026-08-05','welcome','Welcome & Confirm','Everyone, plus each new signup',1],
   ['trigger','trigger','You’re confirmed','Auto-sends when a family taps Confirm',2],
-  ['2026-08-07','date','Reminder: two weeks','Everyone',3],
-  ['2026-08-14','date','Reminder: one week','Everyone',4],
-  ['2026-08-17','date','Reminder: 4 days','Everyone',5],
-  ['2026-08-19','date','Reminder: 2 days','Everyone',6],
-  ['2026-08-20','date','Reminder: tomorrow','Everyone',7],
-  ['2026-08-21','date','Reminder: day of','Everyone',8]
+  ['multi:2026-07-29,2026-08-05,2026-08-12','weekly','Weekly nurture (why + myth)','Everyone, every Wed before Aug 16',3],
+  ['2026-08-16','date','Countdown: 5 days','Everyone',4],
+  ['2026-08-18','date','Countdown: 3 days','Everyone',5],
+  ['2026-08-19','date','Countdown: 2 days','Everyone',6],
+  ['2026-08-20','date','Countdown: tomorrow','Everyone',7],
+  ['2026-08-21','date','Countdown: day of','Everyone',8]
  ];
  const fmt=d=>new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
  const chip=(txt,bg,fg)=>'<span style="padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;margin-left:8px;background:'+bg+';color:'+fg+'">'+txt+'</span>';
@@ -330,6 +333,9 @@ function renderSchedule(e){
   if(kind==='trigger'){status=chip('Automatic','#e8f0ff','#2b5bd7');when='On confirm';}
   else if(kind==='welcome'){when=fmt(date);
    status=welcomedCount>0?chip(welcomedCount+' sent','#e9f9ee','#1f9d55'):chip('Not sent yet','#fdeceb','#d9534f');}
+  else if(kind==='weekly'){const dates=date.replace('multi:','').split(',');when=dates.map(fmt).join(', ');
+   const anySent=dates.some(d=>sentDates.has(d));
+   status=anySent?chip('Sent','#e9f9ee','#1f9d55'):chip('Missed — not sent','#fdeceb','#d9534f');}
   else{const dt=new Date(date+'T00:00:00');when=fmt(date);const wasSent=sentDates.has(date);
    if(wasSent)status=chip('Sent','#e9f9ee','#1f9d55');
    else if(dt<today)status=chip('Missed — not sent','#fdeceb','#d9534f');
