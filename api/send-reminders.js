@@ -30,7 +30,7 @@
 //   /api/send-reminders?key=CRON_SECRET&type=countdown&days=5  → force the 5-day email
 
 import { getEvents } from "./attendees.js";
-import { recordReminderSentDate } from "./_store.js";
+import { recordReminderSentDate, claimOnce, releaseOnce } from "./_store.js";
 import crypto from "crypto";
 
 // Signed per-family confirm link (must match api/confirm.js sigFor).
@@ -235,6 +235,10 @@ export default async function handler(req, res){
   if(!token) return res.status(400).json({error:"No EVENTBRITE_TOKEN set"});
 
   const q = req.query || {};
+  // Admin control: mark/unmark today's send-guard directly, without sending.
+  // Used to retroactively claim a day that already sent before this guard existed.
+  if(q.claimToday){ const first = await claimOnce(`reminder_sent_${todayISO()}`); return res.status(200).json({ claimedNow:first, today:todayISO() }); }
+  if(q.unclaimToday){ await releaseOnce(`reminder_sent_${todayISO()}`); return res.status(200).json({ released:true, today:todayISO() }); }
   const which = (q.event || "wrts").toLowerCase();          // only "wrts" today
   const audience = (q.audience || "all").toLowerCase();     // all | pending
   const force = q.force === "1" || q.force === "true";      // bypass the date gate (manual testing)
@@ -295,6 +299,18 @@ export default async function handler(req, res){
     });
   }
 
+  // Guard against a duplicate send on the same calendar day (e.g. the daily
+  // cron firing plus a manual/status check both landing on a live send).
+  // Only the first caller for today actually sends; everyone else is told so.
+  const sendGuard = `reminder_sent_${todayISO()}`;
+  const firstToday = await claimOnce(sendGuard);
+  if(!firstToday){
+    return res.status(200).json({
+      mode:"skipped", reason:"a reminder already sent today", today:todayISO(),
+      event:which, audience, track:plan.track, subject:built.subject
+    });
+  }
+
   // LIVE: personalized reminders via Resend's BATCH API (one request per <=100),
   // so a full 50+ recipient send never trips the per-message rate limit.
   const origin = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}`;
@@ -330,5 +346,7 @@ export default async function handler(req, res){
   }
   // Record the real send so the dashboard shows truth instead of guessing from the calendar date.
   if(results.sent > 0){ try{ await recordReminderSentDate(todayISO()); }catch(_){} }
+  // If nothing actually went out, release today's claim so a genuine retry isn't permanently blocked.
+  else{ try{ await releaseOnce(sendGuard); }catch(_){} }
   return res.status(200).json({ mode:"sent", today:todayISO(), event:which, audience, track:plan.track, subject:built.subject, teamCopies:TEAM_COPY.length, ...results });
 }
