@@ -163,19 +163,19 @@ function countdownEmail(offset, days, dateISO, slot){
       subject: `See you in 2 days!`,
       lead: `<strong>2 days</strong> to go! We can’t wait to see you and your family.`,
       why: `More than anything, this afternoon is about families finding each other, so you’ll be surrounded by people who truly get it.`,
-      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you this Friday! If you’ve already confirmed your spot, you’re all set, no need to do anything else. If you have any questions, just reach out to lringle@abtaba.com.`
+      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you this Friday!`
     },
     1: {
       subject: `Tomorrow’s the day! 🎉`,
       lead: `It’s almost here — we’ll see you <strong>tomorrow</strong>!`,
       why: `This whole event is about giving your family one afternoon to just be, together with people who understand.`,
-      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you this Friday! If you’ve already confirmed your spot, you’re all set, no need to do anything else. If you have any questions, just reach out to lringle@abtaba.com.`
+      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you this Friday!`
     },
     0: {
       subject: `Today’s the day! 🎉`,
       lead: `<strong>Today’s the day!</strong> We’re all set up and ready to welcome you.`,
       why: `Today is exactly why we do this: a whole afternoon built so your child can play their way, and your family can feel at home.`,
-      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you today! If you’ve already confirmed your spot, you’re all set, no need to do anything else. If you have any questions, just reach out to lringle@abtaba.com.`
+      intro: `You signed up for our free event at We Rock the Spectrum, and we’re so excited to see you today!`
     }
   };
   const c = copy[offset] || {
@@ -196,6 +196,7 @@ function countdownEmail(offset, days, dateISO, slot){
     + `</ul>`
     + `<p style="margin:16px 0 4px">Haven’t confirmed yet? Tap below so we know to expect you:</p>`
     + confirmButton()
+    + (c.intro ? `<p style="font-size:12px;color:#8a90a0;text-align:center;margin:2px 0 0">If you’ve already confirmed your spot, you’re all set, no need to do anything else.</p>` : "")
     + `<p>The full address is in your Eventbrite confirmation email. If anything changes on your end, `
     + `please don’t reply to this email. Instead, email lringle@abtaba.com and let us know.</p>`
     + `<p>See you soon,<br>The Above &amp; Beyond ABA Team</p>`
