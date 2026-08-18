@@ -30,8 +30,16 @@
 //   /api/send-reminders?key=CRON_SECRET&type=countdown&days=5  → force the 5-day email
 
 import { getEvents } from "./attendees.js";
+import crypto from "crypto";
 
-const OFFSETS = (process.env.REMINDER_OFFSETS || "5,3,2,0")
+// Signed per-family confirm link (must match api/confirm.js sigFor).
+function sigFor(order){
+  const secret = process.env.CRON_SECRET || "";
+  return crypto.createHmac("sha256", secret).update(String(order)).digest("hex").slice(0, 16);
+}
+
+// Includes 1 ("tomorrow") alongside 5/3/2/0 so every day in the final run-up has its own reminder.
+const OFFSETS = (process.env.REMINDER_OFFSETS || "5,3,2,1,0")
   .split(",").map(n => parseInt(n, 10)).filter(n => !isNaN(n));
 const MAX_OFFSET = OFFSETS.length ? Math.max(...OFFSETS) : 0;
 const WEEKLY_DAY = (() => { const n = parseInt(process.env.WEEKLY_DAY ?? "3", 10); return isNaN(n) ? 3 : ((n % 7) + 7) % 7; })();
@@ -109,6 +117,10 @@ function eventLine(dateISO, slot){
   return `<p style="background:#f4f6fb;border-radius:10px;padding:12px 14px;margin:18px 0">`
     + `📍 <strong>${esc(EVENT_NAME.wrts)}</strong><br>${esc(when)} · ${esc(VENUE)}${slotTxt}</p>`;
 }
+function confirmButton(){
+  return `<div style="text-align:center;margin:18px 0 6px">`
+    + `<a href="{{confirm_url}}" style="display:inline-block;background:#6b5bd6;color:#fff;text-decoration:none;font-weight:700;padding:13px 28px;border-radius:8px;font-size:15px">I confirm my spot</a></div>`;
+}
 
 // Build subject + html for a WEEKLY nurture email.
 function weeklyEmail(mythIndex, days, dateISO, slot){
@@ -126,6 +138,8 @@ function weeklyEmail(mythIndex, days, dateISO, slot){
     + eventLine(dateISO, slot)
     + `<p>Come play, meet our team, and ask us anything. No pressure, no cost — just a fun, `
     + `sensory-friendly morning for your family.</p>`
+    + `<p style="margin:16px 0 4px">Haven’t confirmed yet? Tap below so we know to expect you:</p>`
+    + confirmButton()
     + `<p>Warmly,<br>The Above &amp; Beyond ABA Team</p>`
   );
   return { subject, html };
@@ -146,6 +160,10 @@ function countdownEmail(offset, days, dateISO, slot){
       subject: `See you in 2 days!`,
       lead: `<strong>2 days</strong> to go! We can’t wait to see you and your family.`
     },
+    1: {
+      subject: `Tomorrow’s the day! 🎉`,
+      lead: `It’s almost here — we’ll see you <strong>tomorrow</strong>!`
+    },
     0: {
       subject: `Today’s the day! 🎉`,
       lead: `<strong>Today’s the day!</strong> We’re all set up and ready to welcome you.`
@@ -164,6 +182,8 @@ function countdownEmail(offset, days, dateISO, slot){
     +   `<li>Dress comfy — there’s lots of play, climbing, and sensory fun.</li>`
     +   `<li>Bring any questions for our team; we love to chat.</li>`
     + `</ul>`
+    + `<p style="margin:16px 0 4px">Haven’t confirmed yet? Tap below so we know to expect you:</p>`
+    + confirmButton()
     + `<p>The full address is in your Eventbrite confirmation email. If anything changes on your end, `
     + `just reply here and let us know.</p>`
     + `<p>See you soon,<br>The Above &amp; Beyond ABA Team</p>`
@@ -234,7 +254,7 @@ export default async function handler(req, res){
     const key = email.toLowerCase();
     if(!email || seen.has(key)) continue;
     seen.add(key);
-    recipients.push({ email, name:f.purchaser||"", slot:(f.slotTime||f.timeslot||"").trim() });
+    recipients.push({ email, name:f.purchaser||"", slot:(f.slotTime||f.timeslot||"").trim(), order:String(f.order||"") });
   }
 
   // Build the email for today's plan.
@@ -264,16 +284,22 @@ export default async function handler(req, res){
 
   // LIVE: personalized reminders via Resend's BATCH API (one request per <=100),
   // so a full 50+ recipient send never trips the per-message rate limit.
+  const origin = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}`;
   const messages = recipients.map(r=>{
     const first = r.name ? r.name.trim().split(/\s+/)[0] : "there";
+    const confirmUrl = `${origin}/api/confirm?o=${encodeURIComponent(r.order)}&s=${sigFor(r.order)}`;
     const perSlot = plan.track === "weekly"
       ? weeklyEmail(plan.weekIndex, days ?? 0, dateISO, r.slot)
       : countdownEmail(plan.offset, days ?? plan.offset, dateISO, r.slot);
-    const html = perSlot.html.replace(/\{\{\s*first\s*\}\}/gi, esc(first));
+    const html = perSlot.html
+      .replace(/\{\{\s*first\s*\}\}/gi, esc(first))
+      .replace(/\{\{\s*confirm_url\s*\}\}/gi, confirmUrl);
     return { from:FROM, to:[r.email], reply_to:REPLY_TO, subject: perSlot.subject, html };
   });
   // Team copies: one copy of the reminder to internal observers.
-  const copyHtml = built.html.replace(/\{\{\s*first\s*\}\}/gi, "Team");
+  const copyHtml = built.html
+    .replace(/\{\{\s*first\s*\}\}/gi, "Team")
+    .replace(/\{\{\s*confirm_url\s*\}\}/gi, `${origin}/api/confirm?o=DEMO&s=DEMO`);
   for(const t of TEAM_COPY) messages.push({ from:FROM, to:[t], reply_to:REPLY_TO, subject:`[Team copy] ${built.subject}`, html:copyHtml });
 
   const results = { sent:0, failed:0, errors:[] };
