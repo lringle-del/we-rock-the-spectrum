@@ -48,6 +48,7 @@ const FROM = process.env.REMINDER_FROM || "Above & Beyond ABA <events@updates.ab
 const REPLY_TO = process.env.EMAIL_REPLY_TO || "lringle@abtaba.com";
 const TEAM_COPY = (process.env.TEAM_COPY || "jmayerovitz@abtaba.com,koneil@abtaba.com").split(",").map(s=>s.trim()).filter(Boolean);
 const VENUE = process.env.EVENT_VENUE || "We Rock the Spectrum Kids Gym";
+const VENUE_ADDRESS = process.env.EVENT_VENUE_ADDRESS || "10717 Virginia Plaza, Suite 113, La Vista, NE 68128";
 const EVENT_DATE = { wrts: process.env.EVENT_WRTS_DATE };
 const EVENT_NAME = { wrts: "Free Event at We Rock the Spectrum Kids Gym" };
 
@@ -116,7 +117,7 @@ function eventLine(dateISO, slot){
   const when = prettyDate(dateISO);
   const slotTxt = slot ? ` · your time: <strong>${esc(slot)}</strong>` : "";
   return `<p style="background:#f4f6fb;border-radius:10px;padding:12px 14px;margin:18px 0">`
-    + `📍 <strong>${esc(EVENT_NAME.wrts)}</strong><br>${esc(when)} · ${esc(VENUE)}${slotTxt}</p>`;
+    + `📍 <strong>${esc(EVENT_NAME.wrts)}</strong><br>${esc(when)} · ${esc(VENUE)}${slotTxt}<br>${esc(VENUE_ADDRESS)}</p>`;
 }
 function confirmButton(){
   return `<div style="text-align:center;margin:18px 0 6px">`
@@ -197,8 +198,7 @@ function countdownEmail(offset, days, dateISO, slot){
     + `<p style="margin:16px 0 4px">Haven’t confirmed yet? Tap below so we know to expect you:</p>`
     + confirmButton()
     + (c.intro ? `<p style="font-size:12px;color:#8a90a0;text-align:center;margin:2px 0 0">If you’ve already confirmed your spot, you’re all set, no need to do anything else.</p>` : "")
-    + `<p>The full address is in your Eventbrite confirmation email. If anything changes on your end, `
-    + `please don’t reply to this email. Instead, email lringle@abtaba.com and let us know.</p>`
+    + `<p>If anything changes on your end, please don’t reply to this email. Instead, email lringle@abtaba.com and let us know.</p>`
     + `<p>See you soon,<br>The Above &amp; Beyond ABA Team</p>`
   );
   return { subject: c.subject, html };
