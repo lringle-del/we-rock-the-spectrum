@@ -30,7 +30,7 @@
 //   /api/send-reminders?key=CRON_SECRET&type=countdown&days=5  → force the 5-day email
 
 import { getEvents } from "./attendees.js";
-import { recordReminderSentDate, claimOnce, releaseOnce } from "./_store.js";
+import { recordReminderSentDate, claimOnce, releaseOnce, markApproved, isApproved, markPreviewed, wasPreviewed } from "./_store.js";
 import crypto from "crypto";
 
 // Signed per-family confirm link (must match api/confirm.js sigFor).
@@ -280,6 +280,48 @@ export default async function handler(req, res){
   if(plan && plan.track === "countdown") built = countdownEmail(plan.offset, days ?? plan.offset, dateISO, null);
 
   const willSend = liveEnabled && !!apiKey && !!plan && !!built && recipients.length > 0;
+  const origin0 = `https://${(req.headers && req.headers.host) || "we-rock-the-spectrum.vercel.app"}`;
+  const isApprovalClick = q.approve === "1";
+
+  // APPROVAL GATE: before any real send, you must click "Approve and send" in a
+  // sample emailed to you. The first time a day's plan is ready to send, a
+  // sample goes to lringle@abtaba.com (once) and everything stops there. The
+  // Approve button re-hits this same endpoint with &approve=1, which marks it
+  // approved and lets the send proceed in that same click.
+  if(willSend){
+    const approveKey = `reminder_approved_${todayISO()}_${plan.track}_${plan.track==="weekly"?plan.weekIndex:plan.offset}`;
+    if(isApprovalClick) await markApproved(approveKey);
+    const approved = await isApproved(approveKey);
+    if(!approved){
+      const alreadyPreviewed = await wasPreviewed(approveKey);
+      if(!alreadyPreviewed){
+        await markPreviewed(approveKey);
+        const approveUrl = `${origin0}/api/send-reminders?event=${which}&audience=${audience}&key=${encodeURIComponent(process.env.CRON_SECRET||"")}&approve=1${force?"&force=1":""}`;
+        const sampleHtml = built.html
+          .replace(/\{\{\s*first\s*\}\}/gi, "there")
+          .replace(/\{\{\s*confirm_url\s*\}\}/gi, `${origin0}/api/confirm?o=DEMO&s=DEMO`);
+        const wrapped = `<div style="font-family:Inter,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto">`
+          + `<div style="background:#fff7e6;border:1px solid #f0d38a;border-radius:12px;padding:18px 20px;margin-bottom:18px;text-align:center">`
+          + `<p style="margin:0 0 10px;font-weight:700;color:#1f2430">This is today's reminder (${esc(plan.track)}), ready to send to <strong>${recipients.length}</strong> families.</p>`
+          + `<a href="${approveUrl}" style="display:inline-block;background:#1f9d55;color:#fff;text-decoration:none;font-weight:700;padding:14px 30px;border-radius:8px;font-size:16px">✅ Approve and send to everyone</a>`
+          + `<p style="margin:10px 0 0;font-size:12px;color:#8a90a0">Nothing has been sent yet. This preview only went to you.</p></div>`
+          + sampleHtml + `</div>`;
+        try{
+          await fetch("https://api.resend.com/emails", {
+            method:"POST",
+            headers:{ "Authorization":`Bearer ${apiKey}`, "Content-Type":"application/json" },
+            body: JSON.stringify({ from:FROM, to:["lringle@abtaba.com"], reply_to:REPLY_TO,
+              subject:`[Approve] ${built.subject}`, html:wrapped })
+          });
+        }catch(_){}
+      }
+      return res.status(200).json({
+        mode:"awaiting_approval", today:todayISO(), event:which, audience,
+        track:plan.track, subject:built.subject, wouldSend:recipients.length,
+        note:"A sample with an Approve button was emailed to lringle@abtaba.com. Nothing sent to families yet."
+      });
+    }
+  }
 
   // PREVIEW: report only, send nothing.
   if(!willSend){
@@ -305,6 +347,14 @@ export default async function handler(req, res){
   const sendGuard = `reminder_sent_${todayISO()}`;
   const firstToday = await claimOnce(sendGuard);
   if(!firstToday){
+    if(isApprovalClick){
+      res.setHeader("Content-Type","text/html; charset=utf-8");
+      return res.status(200).send(
+        `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Inter,Segoe UI,Arial,sans-serif;background:#f3f4f8;margin:0;padding:44px 16px;color:#1f2430;text-align:center">`
+        + `<div style="max-width:440px;margin:0 auto;background:#fff;border-radius:16px;padding:32px 26px"><div style="font-size:44px">👍</div>`
+        + `<h2 style="margin:10px 0 6px">Already sent</h2><p>Today's reminder already went out — no duplicate was sent.</p></div></body></html>`
+      );
+    }
     return res.status(200).json({
       mode:"skipped", reason:"a reminder already sent today", today:todayISO(),
       event:which, audience, track:plan.track, subject:built.subject
@@ -348,5 +398,18 @@ export default async function handler(req, res){
   if(results.sent > 0){ try{ await recordReminderSentDate(todayISO()); }catch(_){} }
   // If nothing actually went out, release today's claim so a genuine retry isn't permanently blocked.
   else{ try{ await releaseOnce(sendGuard); }catch(_){} }
+
+  // A human clicked "Approve" from their inbox, so show a friendly page instead of raw JSON.
+  if(isApprovalClick){
+    res.setHeader("Content-Type","text/html; charset=utf-8");
+    return res.status(200).send(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>`
+      + `<body style="font-family:Inter,Segoe UI,Arial,sans-serif;background:#f3f4f8;margin:0;padding:44px 16px;color:#1f2430;text-align:center">`
+      + `<div style="max-width:440px;margin:0 auto;background:#fff;border-radius:16px;padding:32px 26px;box-shadow:0 1px 4px rgba(20,25,40,.08)">`
+      + `<div style="font-size:44px">✅</div><h2 style="margin:10px 0 6px">Approved and sent!</h2>`
+      + `<p style="font-size:16px">Sent <strong>${results.sent}</strong> of ${recipients.length} families${results.failed?`, ${results.failed} failed`:""}.</p>`
+      + `<p style="color:#8a90a0;font-size:13px">Subject: ${esc(built.subject)}</p></div></body></html>`
+    );
+  }
   return res.status(200).json({ mode:"sent", today:todayISO(), event:which, audience, track:plan.track, subject:built.subject, teamCopies:TEAM_COPY.length, ...results });
 }
