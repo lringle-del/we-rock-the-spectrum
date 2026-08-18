@@ -84,10 +84,14 @@ function buildFamilies(attendees){
     const email=((at.profile&&at.profile.email)||"").trim();
     if(isTest(email)) continue;
     const oid=String(at.order_id||at.id);
+    // Eventbrite's profile.cell_phone is almost never populated for this
+    // event; the actual number comes back as a "Phone number" registration
+    // question instead, so fall back to that.
+    const phone=((at.profile&&at.profile.cell_phone)||"").trim() || findAnswer(at.answers,["phone"]);
     if(!orders.has(oid)) orders.set(oid,{source:"Eventbrite",order:oid,
       date:(at.created||"").slice(0,10),
       purchaser:((at.profile&&at.profile.name)||"").trim(),
-      email, phone:((at.profile&&at.profile.cell_phone)||"").trim(),
+      email, phone,
       timeslot:"", ticket:"", emails:new Set(), attendees:[]});
     const fam=orders.get(oid);
     fam.emails.add(email.toLowerCase());
