@@ -113,7 +113,9 @@ export default async function handler(req, res){
 
   const willSend = authed && liveEnabled && !!apiKey && recipients.length > 0 && !!subject && !!html;
 
-  // PREVIEW: report only, send nothing.
+  // PREVIEW: report only, send nothing. For the welcome template, also report
+  // exactly who is (and isn't) already recorded as welcomed, so a gap can be
+  // reviewed before anything is sent.
   if(!willSend){
     const reasons = [];
     if(!authed) reasons.push("passphrase missing/incorrect (sending disabled)");
@@ -121,10 +123,19 @@ export default async function handler(req, res){
     if(!liveEnabled) reasons.push("EMAIL_LIVE not '1' (still in preview)");
     if(!subject || !html) reasons.push("subject or message is empty");
     if(!recipients.length) reasons.push("no recipients for this audience");
+    let notYetWelcomed = null, alreadyWelcomedCount = null;
+    if(template === "welcome"){
+      try{
+        const welcomedSet = new Set((await listWelcomed()).map(x=>String(x).toLowerCase()));
+        notYetWelcomed = recipients.filter(r=>!welcomedSet.has(r.email.toLowerCase())).map(r=>r.email);
+        alreadyWelcomedCount = recipients.length - notYetWelcomed.length;
+      }catch(_){}
+    }
     return res.status(200).json({
       mode:"preview", event:which, audience,
       wouldSend: recipients.length, reasons,
       recipients: recipients.map(r => r.email),
+      notYetWelcomed, alreadyWelcomedCount,
       // First few with their resolved time slot, so slot personalization can be verified.
       sample: recipients.slice(0,6).map(r => ({ email:r.email, first:(r.name||"").trim().split(/\s+/)[0]||"there", slot:r.slot||"(none)" }))
     });
