@@ -189,8 +189,8 @@ function countdownEmail(offset, days, dateISO, slot){
   const html = shell(
     `<p>Hi {{first}},</p>`
     + (c.intro ? `<p>${c.intro}</p>` : "")
-    + `<p>${c.lead}</p>`
     + `<p>${c.why}</p>`
+    + `<p>${c.lead}</p>`
     + eventLine(dateISO, slot)
     + `<ul style="margin:14px 0;padding-left:20px">`
     +   `<li>Arriving a few minutes early helps us get everyone settled.</li>`
