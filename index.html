@@ -378,12 +378,16 @@ function renderOccupancy(e){
  const KIDMAX=70; // hard cap kids per time slot (overbook a bit; not all confirm/show)
  const IDEAL=50;  // ideal target
  const groups={};
- for(const f of e.families){const k=(f.slotTime||f.timeslot||'—');if(!groups[k])groups[k]={fam:0,kids:0};groups[k].fam++;groups[k].kids+=(f.count||(f.attendees?f.attendees.length:0)||0);}
+ for(const f of e.families){const k=(f.slotTime||f.timeslot||'—');if(!groups[k])groups[k]={fam:0,kids:0,confFam:0,confKids:0};
+  groups[k].fam++;const n=(f.count||(f.attendees?f.attendees.length:0)||0);groups[k].kids+=n;
+  if(f.confirmed){groups[k].confFam++;groups[k].confKids+=n;}}
  const ordr=['4:00 PM','5:30 PM','6:45 PM'];
  const keys=Object.keys(groups).sort((a,b)=>{const ia=ordr.indexOf(a),ib=ordr.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
  const rows=keys.map(function(k){const g=groups[k];const over=g.kids>KIDMAX;const near=!over&&g.kids>IDEAL;const pct=Math.round(g.kids/KIDMAX*100);const w=Math.max(3,Math.min(100,pct));
+  const confPct=g.fam?Math.round(g.confFam/g.fam*100):0;const cw=Math.max(3,Math.min(100,confPct));
   const color=over?'#d9534f':(near?'#c9721a':'#1f9d55');const tag=over?(' · OVER cap by '+(g.kids-KIDMAX)):(near?' · over ideal 50':'');
-  return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span><b>'+esc(k)+'</b></span><span style="color:'+(over?'#d9534f':'#5b6270')+'"><b>'+g.kids+' kids</b> / '+KIDMAX+' max'+tag+' · '+g.fam+' families · ~'+(g.kids+g.fam*2)+' people</span></div><div style="background:#eef0f6;border-radius:8px;height:22px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:'+color+'"></div></div></div>';
+  return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px"><span><b>'+esc(k)+'</b></span><span style="color:'+(over?'#d9534f':'#5b6270')+'"><b>'+g.kids+' kids</b> / '+KIDMAX+' max'+tag+' · '+g.fam+' families · ~'+(g.kids+g.fam*2)+' people</span></div><div style="background:#eef0f6;border-radius:8px;height:22px;overflow:hidden"><div style="height:100%;width:'+w+'%;background:'+color+'"></div></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:12px;margin:5px 0 2px;color:#5b6270"><span>&#10003; Confirmed</span><span><b>'+g.confFam+'</b> of '+g.fam+' families ('+confPct+'%) &middot; <b>'+g.confKids+'</b> of '+g.kids+' kids</span></div><div style="background:#eef0f6;border-radius:8px;height:10px;overflow:hidden"><div style="height:100%;width:'+cw+'%;background:#1f9d55"></div></div></div>';
  }).join('');
  wrap.innerHTML='<div class="section-h">Occupancy by time slot <span class="hint">aim ~50, allow up to 70 kids/hour · venue cap 330 · Fri Aug 21, 4-8 PM</span></div>'+rows;
 }
