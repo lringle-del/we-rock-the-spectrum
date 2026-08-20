@@ -74,6 +74,28 @@ export async function removeFormFamilies(emails){
   return n;
 }
 
+// --- cancelled emails (permanently blocked from re-import/welcome, e.g. a
+// family that told us they can't come; survives future Form re-uploads) ---
+const CANCELLED = "wrts:cancelled";
+export async function addCancelled(emails){
+  const c = await getClient(); if(!c) return;
+  const arr = [].concat(emails||[]).map(e=>String(e).trim().toLowerCase()).filter(Boolean);
+  if(!arr.length) return;
+  try{ await c.sAdd(CANCELLED, arr); }catch(_){}
+}
+export async function isCancelled(email){
+  const c = await getClient(); if(!c) return false;
+  try{ return !!(await c.sIsMember(CANCELLED, String(email||"").trim().toLowerCase())); }catch(_){ return false; }
+}
+export async function listCancelled(){
+  const c = await getClient(); if(!c) return [];
+  try{ return await c.sMembers(CANCELLED); }catch(_){ return []; }
+}
+export async function removeCancelled(email){
+  const c = await getClient(); if(!c) return;
+  try{ await c.sRem(CANCELLED, String(email||"").trim().toLowerCase()); }catch(_){}
+}
+
 // --- welcome idempotency (never welcome the same email twice) ---
 export async function listWelcomed(){
   const c = await getClient(); if(!c) return [];

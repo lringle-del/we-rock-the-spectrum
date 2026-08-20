@@ -2,7 +2,7 @@
 // The private Eventbrite token lives ONLY in the Vercel Environment Variable
 // EVENTBRITE_TOKEN and is never sent to the browser.
 
-import { listConfirmed, getReviewMap, emailEventCount, listFormFamilies, listSentReminderDates, listWelcomed } from "./_store.js";
+import { listConfirmed, getReviewMap, emailEventCount, listFormFamilies, listSentReminderDates, listWelcomed, listCancelled } from "./_store.js";
 
 // A family is flagged for manual review only when EVERY child answered "No" to
 // all three of: autism diagnosis, currently receiving ABA, looking for ABA. Any
@@ -185,11 +185,20 @@ export async function getEvents(token){
       wrtsFams=wrtsFams.concat(fams);
     }catch(_){ /* skip a listing we can't read (bad id / no access) */ }
   }
+  // Drop anyone who has cancelled, regardless of source (Eventbrite or Form) -
+  // e.g. a family that told us they can't come. Survives future re-imports.
+  try{
+    const cancelledSet = new Set((await listCancelled()).map(e=>e.toLowerCase()));
+    if(cancelledSet.size) wrtsFams = wrtsFams.filter(f=>!cancelledSet.has(String(f.email||"").trim().toLowerCase()));
+  }catch(_){ /* best-effort */ }
+
   // Merge in Microsoft Form registrations (deduped by email against Eventbrite).
   try{
+    const cancelledSet2 = new Set((await listCancelled()).map(e=>e.toLowerCase()));
     const seenEmail = new Set(wrtsFams.map(f=>String(f.email||"").toLowerCase()));
     for(const ff of await listFormFamilies()){
       const email = String(ff.email||"").trim(); if(!email || seenEmail.has(email.toLowerCase())) continue;
+      if(cancelledSet2.has(email.toLowerCase())) continue;
       seenEmail.add(email.toLowerCase());
       const kids = (ff.children||[]).map(k=>({
         child:k.child||"", age:k.age||"", dx:k.dx||"", aba:k.aba||"", looking:k.looking||"", gain:"", haircut:"",

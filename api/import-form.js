@@ -5,7 +5,7 @@
 //
 // POST { key, families:[{email,name,phone,slot,children:[{child,age,dx,aba,looking}]}] }
 
-import { saveFormFamilies, removeFormFamilies } from "./_store.js";
+import { saveFormFamilies, removeFormFamilies, addCancelled, listCancelled } from "./_store.js";
 
 function safe(s){ try{ return JSON.parse(s || "{}"); }catch(_){ return {}; } }
 function readBody(req){
@@ -20,9 +20,20 @@ export default async function handler(req, res){
   const body = await readBody(req);
   const key = String(body.key || (req.query && req.query.key) || "");
   if(key !== String(process.env.CRON_SECRET || "")) return res.status(401).json({ error:"unauthorized" });
-  const families = Array.isArray(body.families) ? body.families : [];
+  // "cancel" permanently blocks these emails from ever being (re-)imported or
+  // welcomed again, even if a future Form export still contains their row.
+  if(Array.isArray(body.cancel) && body.cancel.length){
+    await addCancelled(body.cancel);
+    const removed = await removeFormFamilies(body.cancel);
+    return res.status(200).json({ ok:true, cancelled: body.cancel, removed });
+  }
+
+  const cancelledSet = new Set((await listCancelled()).map(e=>e.toLowerCase()));
+  const incoming = Array.isArray(body.families) ? body.families : [];
+  const blocked = incoming.filter(f=>cancelledSet.has(String(f&&f.email||"").trim().toLowerCase())).map(f=>f.email);
+  const families = incoming.filter(f=>!cancelledSet.has(String(f&&f.email||"").trim().toLowerCase()));
   const { added, total } = await saveFormFamilies(families);
   let removed = 0;
   if(Array.isArray(body.remove) && body.remove.length) removed = await removeFormFamilies(body.remove);
-  return res.status(200).json({ ok:true, received: families.length, added, addedCount: added.length, removed, totalForm: total });
+  return res.status(200).json({ ok:true, received: incoming.length, added, addedCount: added.length, removed, blocked, totalForm: total });
 }
