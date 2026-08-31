@@ -55,6 +55,11 @@ async function allAttendees(eventId, token){
   }
   return out;
 }
+// Strips Eventbrite's observed upstream corruption pattern (literal
+// "b'First' b'Last'" text) from any name string, wherever it shows up.
+function cleanName(s){
+  return String(s||"").replace(/\bb'([^']*)'/g, "$1").trim();
+}
 function findAnswer(answers, keywords){
   for(const a of answers||[]){
     const q=(a.question||"").toLowerCase();
@@ -90,7 +95,16 @@ function buildFamilies(attendees){
     const phone=((at.profile&&at.profile.cell_phone)||"").trim() || findAnswer(at.answers,["phone"]);
     if(!orders.has(oid)) orders.set(oid,{source:"Eventbrite",order:oid,
       date:(at.created||"").slice(0,10),
-      purchaser:((at.profile&&at.profile.name)||"").trim(),
+      // Eventbrite's combined profile.name field is intermittently corrupted
+      // upstream (observed as literal "b'First' b'Last'" text). The separate
+      // first_name/last_name fields haven't shown this, so prefer building
+      // from those; fall back to profile.name only if they're missing, and
+      // strip the corruption pattern defensively either way.
+      purchaser: cleanName(
+        (at.profile && (at.profile.first_name||at.profile.last_name))
+          ? `${(at.profile.first_name||"").trim()} ${(at.profile.last_name||"").trim()}`.trim()
+          : ((at.profile&&at.profile.name)||"").trim()
+      ),
       email, phone,
       timeslot:"", ticket:"", emails:new Set(), attendees:[]});
     const fam=orders.get(oid);
